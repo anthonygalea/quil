@@ -25,7 +25,7 @@
             :size (:size opts default-size)
             :renderer (:renderer opts :p2d)
             :host (or (:host opts)
-                       (get default-host (:renderer opts :p2d)))
+                      (get default-host (:renderer opts :p2d)))
             :setup (:setup snippet)
 
             :draw (fn []
@@ -33,8 +33,8 @@
                       ((:body snippet))
                       (catch js/Error e
                         (swap! failed inc)
-                        (throw e))
-                      (finally (q/exit)))))))})
+                        (throw e)))))))})
+                      ;; (finally (q/exit)))))))})
 
 (def test-functions (mapv snippet-to-test-function as/all-snippets))
 
@@ -60,6 +60,10 @@
   (reset! failed 0)
   (reset! total 0))
 
+(defn remove-canvases []
+  (doseq [c (d/sel [:canvas])]
+    (d/remove! c)))
+
 (defn run-single-test []
   (if (< @test-indx (count test-functions))
     (let [sketch (nth test-functions @test-indx)]
@@ -67,6 +71,7 @@
       (swap! total inc)
 
       (try
+        (remove-canvases)
         ((:fn sketch))
 
         (catch js/Error e
@@ -76,7 +81,7 @@
 
         (finally
           (swap! test-indx inc)
-          (js/setTimeout run-single-test 500))))
+          (js/setTimeout run-single-test 5))))
 
     (js/setTimeout end-of-tests 500)))
 
@@ -90,6 +95,7 @@
 (defn run-selected-test [event]
   (let [select (.-target event)
         option (aget select (.-selectedIndex select))]
+    (remove-canvases)
     ((:fn (.-testData option)))))
 
 (defn init-test-selection [input]

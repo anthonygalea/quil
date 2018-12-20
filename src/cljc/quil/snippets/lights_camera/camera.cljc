@@ -5,30 +5,6 @@
   #?(:cljs
      (:use-macros [quil.snippets.macro :only [defsnippet]])))
 
-(defsnippet begin-camera-end-camera-camera
-  ["begin-camera" "end-camera" "camera"]
-  {:renderer :p3d}
-
-  (q/background 255)
-  (q/begin-camera)
-  (q/camera)
-  (q/translate 250 0 -250)
-  (q/rotate-z (/ q/PI 4))
-  (q/rotate-x (/ q/PI 8))
-  (q/rotate-y (/ q/PI -8))
-  (q/end-camera)
-
-  (q/stroke-weight 2)
-  (q/stroke 0)
-  (q/fill 127)
-  (q/box 100)
-  (q/stroke 255 0 0) ; red - X axis
-  (q/line 0 0 0 100 0 0)
-  (q/stroke 0 255 0) ; green - Y axis
-  (q/line 0 0 0 0 100 0)
-  (q/stroke 0 0 255) ; blue - Z axis
-  (q/line 0 0 0 0 0 100))
-
 (defsnippet camera
   "camera"
   {:renderer :p3d}
@@ -39,32 +15,35 @@
   (q/stroke-weight 2)
   (q/stroke 0)
   (q/fill 127)
-  (q/box 100)
-  (q/stroke 255 0 0) ; red - X axis
-  (q/line 0 0 0 100 0 0)
-  (q/stroke 0 255 0) ; green - Y axis
-  (q/line 0 0 0 0 100 0)
-  (q/stroke 0 0 255) ; blue - Z axis
-  (q/line 0 0 0 0 0 100))
+  #?(:clj (do (q/box 100)
+              (q/stroke 255 0 0) ; red - x axis
+              (q/line 0 0 0 100 0 0)
+              (q/stroke 0 255 0) ; green - Y axis
+              (q/line 0 0 0 0 100 0)
+              (q/stroke 0 0 255) ; blue - Z axis
+              (q/line 0 0 0 0 0 100)))
+  #?(:cljs (do
+             (q/box 100))))
 
-(defsnippet frustum
-  "frustum"
-  {:renderer :p3d}
+#?(:clj
+   (defsnippet frustum
+     "frustum"
+     {:renderer :p3d}
 
-  (q/background 255)
-  (q/camera 200 200 200 0 0 0 0 0 -1)
-  (q/frustum -100 100 -100 100 200 330)
+     (q/background 255)
+     (q/camera 200 200 200 0 0 0 0 0 -1)
+     (q/frustum -100 100 -100 100 200 330)
 
-  (q/stroke-weight 2)
-  (q/stroke 0)
-  (q/fill 127)
-  (q/box 100)
-  (q/stroke 255 0 0) ; red - X axis
-  (q/line 0 0 0 100 0 0)
-  (q/stroke 0 255 0) ; green - Y axis
-  (q/line 0 0 0 0 100 0)
-  (q/stroke 0 0 255) ; blue - Z axis
-  (q/line 0 0 0 0 0 100))
+     (q/stroke-weight 2)
+     (q/stroke 0)
+     (q/fill 127)
+     (q/box 100)
+     (q/stroke 255 0 0) ; red - X axis
+     (q/line 0 0 0 100 0 0)
+     (q/stroke 0 255 0) ; green - Y axis
+     (q/line 0 0 0 0 100 0)
+     (q/stroke 0 0 255) ; blue - Z axis
+     (q/line 0 0 0 0 0 100)))
 
 (defsnippet ortho
   "ortho"
@@ -98,14 +77,16 @@
           (q/box 100))
         (apply q/image gr (nth pos ind))))))
 
-(defsnippet print-camera
-  "print-camera"
-  {:renderer :p3d}
+#?(:clj
+   (defsnippet print-camera
+     "print-camera"
+     {:renderer :p3d}
 
-  (q/print-camera))
+     (q/print-camera)))
 
-(defsnippet print-projection
-  "print-projection"
-  {:renderer :p3d}
+#?(:clj
+   (defsnippet print-projection
+     "print-projection"
+     {:renderer :p3d}
 
-  (q/print-projection))
+     (q/print-projection)))

@@ -7,46 +7,42 @@
 
 (defsnippet blend
   "blend"
-  {}
+  {:setup (q/no-loop)}
 
   (q/background 255 100 20 50)
 
-  (let [gr (q/create-graphics 50 50)
-        modes [:blend :add :subtract :darkest :lightest :difference :exclusion
+  (let [im (q/create-image 100 100 #?(:clj :rgb))
+        modes [:blend :add :darkest :lightest :difference :exclusion
                :multiply :screen :overlay :hard-light :soft-light :dodge :burn]
         splitted (partition-all 5 modes)]
-    (comment "draw 3 circles of different color on the graphics")
-    (q/with-graphics gr
-      (q/background 40 200 255 200)
-      (q/fill 255 0 0)
-      (q/ellipse 12 12 20 20)
-      (q/fill 0 255 0)
-      (q/ellipse 38 12 20 20)
-      (q/fill 0 0 255)
-      (q/ellipse 25 38 20 20))
+    (dotimes [x 100]
+      (dotimes [y 100]
+        (q/set-pixel im x y (q/color (* 2 x) (* 2 y) (+ x y)))))
+    #?(:cljs (q/update-pixels im))
 
-    (comment "all possible blended modes")
+    (comment "draw all possible blended modes")
     (dotimes [row (count splitted)]
       (dotimes [col (count (nth splitted row))]
         (let [mode (nth (nth splitted row) col)]
           (comment "blend with sketch itself")
           (q/blend 400 0 50 50 (* col 55) (* row 55) 50 50 mode)
           (comment "blend with graphics")
-          (q/blend gr 0 0 50 50 (* col 55) (+ 170 (* row 55)) 50 50 mode)
+          (q/blend im 0 0 50 50 (* col 55) (+ 170 (* row 55)) 50 50 mode)
           (comment "blend graphics to graphics")
-          (q/blend gr (q/current-graphics) 0 0 50 50 (* col 55) (+ 340 (* row 55)) 50 50 mode))))))
+          (q/blend im (q/current-graphics) 0 0 50 50 (* col 55) (+ 340 (* row 55)) 50 50 mode))))))
 
 (defsnippet copy
   "copy"
   {}
 
   (q/background 255)
-  (let [im (q/create-image 100 100 :rgb)]
+  (let [im (q/create-image 100 100 #?(:clj :rgb))]
     (comment " gradient on the image")
     (dotimes [x 100]
       (dotimes [y 100]
         (q/set-pixel im x y (q/color (* 2 x) (* 2 y) (+ x y)))))
-
+    #?(:cljs (q/update-pixels im))
+    
     (comment "draw original image")
     (q/image im 0 0)
     (comment "copy left top quarter to the right top quarter")
@@ -206,7 +202,8 @@
     (comment "get pixels of the graphics and copy")
     (comment "the first half of all pixels to the second half")
     (let [px (q/pixels gr)
-          half (/ (* size size) 2)]
+          half #?(:clj (* size size)
+                  :cljs (* 4 (* (q/display-density) size) (/ (* (q/display-density) size) 2)))]
       (dotimes [i half]
         #?(:clj (aset-int px (+ i half) (aget px i))
            :cljs (aset px (+ i half) (aget px i)))))
@@ -216,7 +213,8 @@
     (comment "get pixels of the sketch itself and copy")
     (comment "the first half of all pixels to the second half")
     (let [px (q/pixels)
-          half (/ (* (q/width) (q/height)) 10)]
+          half #?(:clj (/ (* (q/width) (q/height)) 10)
+                  :cljs (/ (* 4 (* (q/display-density) (q/width)) (* (q/display-density) (q/height))) 10))]
       (dotimes [i half]
         #?(:clj (aset-int px (+ i half) (aget px i))
            :cljs (aset px (+ i half) (aget px i)))))
@@ -227,11 +225,13 @@
   {}
 
   (q/background 255)
-  (let [im (q/create-image 100 100 :rgb)]
+  (let [im (q/create-image 100 100 #?(:clj :rgb))]
     (comment "draw gradient on the image")
     (dotimes [x 100]
       (dotimes [y 100]
         (q/set-pixel im x y (q/color (* 2 x) (* 2 y) (+ x y)))))
+    #?(:cljs (q/update-pixels im))
+
     (comment "draw image on sketch")
     (q/set-image 10 10 im)))
 

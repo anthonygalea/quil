@@ -8,15 +8,16 @@
 ; These snippets test non-graphic functions.
 ; Draw results as strings in sketch.
 
-(defsnippet binary
-  "binary"
-  {}
+#?(:clj
+   (defsnippet binary
+     "binary"
+     {}
 
-  (q/background 255)
-  (q/fill 0)
-  (q/text (q/binary 42) 10 10)
+     (q/background 255)
+     (q/fill 0)
+     (q/text (q/binary 42) 10 10)
 
-  (q/text (q/binary 42 5) 10 30))
+     (q/text (q/binary 42 5) 10 30)))
 
 (defsnippet hex
   "hex"
@@ -28,13 +29,14 @@
 
   (q/text (q/hex 42 5) 10 30))
 
-(defsnippet unbinary
-  "unbinary"
-  {}
+#?(:clj
+   (defsnippet unbinary
+     "unbinary"
+     {}
 
-  (q/background 255)
-  (q/fill 0)
-  (q/text (str (q/unbinary "0101010")) 10 10))
+     (q/background 255)
+     (q/fill 0)
+     (q/text (str (q/unbinary "0101010")) 10 10)))
 
 (defsnippet unhex
   "unhex"

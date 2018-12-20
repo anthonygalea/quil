@@ -69,47 +69,75 @@
       (q/end-shape))
     (q/image gr 0 0)))
 
-(defsnippet bezier-vertex
-  "bezier-vertex"
-  {:renderer :p3d}
+#?(:clj
+   (defsnippet bezier-vertex
+     "bezier-vertex"
+     {:renderer :p3d}
 
-  (q/camera -400 250 -100 500 250 0 0 0 1)
-  (q/begin-shape)
-  (q/vertex 30 20)
-  (q/bezier-vertex 480 0 480 475 30 475)
-  (q/bezier-vertex 250 380 360 125 30 20)
-  (q/end-shape :close)
+     (q/camera -400 250 -100 500 250 0 0 0 1)
+     (q/begin-shape)
+     (q/vertex 30 20)
+     (q/bezier-vertex 480 0 480 475 30 475)
+     (q/bezier-vertex 250 380 360 125 30 20)
+     (q/end-shape :close)
 
-  (q/begin-shape)
-  (q/vertex 30 20 0)
-  (q/bezier-vertex 480 0 20 480 475 30 30 475 40)
-  (q/bezier-vertex 250 380 40 360 125 10 30 20 0)
-  (q/end-shape :close))
+     (q/begin-shape)
+     (q/vertex 30 20 0)
+     (q/bezier-vertex 480 0 20 480 475 30 30 475 40)
+     (q/bezier-vertex 250 380 40 360 125 10 30 20 0)
+     (q/end-shape :close)))
 
-(defsnippet curve-vertex
-  "curve-vertex"
-  {:renderer :p3d}
+#?(:cljs
+   (defsnippet bezier-vertex
+     "bezier-vertex"
+     {}
 
-  (q/camera 50 200 50 50 0 0 0 0 1)
-  (q/begin-shape)
-  (q/curve-vertex 0 0)
-  (q/curve-vertex 0 0)
-  (q/curve-vertex 100 20)
-  (q/curve-vertex 100 80)
-  (q/curve-vertex 20 80)
-  (q/curve-vertex 0 0)
-  (q/curve-vertex 0 0)
-  (q/end-shape :close)
+     (q/begin-shape)
+     (q/vertex 30 20)
+     (q/bezier-vertex 480 0 480 475 30 475)
+     (q/bezier-vertex 250 380 360 125 30 20)
+     (q/end-shape :close)))
 
-  (q/begin-shape)
-  (q/curve-vertex 0 0 0)
-  (q/curve-vertex 0 0 0)
-  (q/curve-vertex 100 0 20)
-  (q/curve-vertex 100 0 80)
-  (q/curve-vertex 20 0 80)
-  (q/curve-vertex 0 0 0)
-  (q/curve-vertex 0 0 0)
-  (q/end-shape :close))
+#?(:clj
+   (defsnippet curve-vertex
+     "curve-vertex"
+     {:renderer :p3d}
+
+     (q/camera 50 200 50 50 0 0 0 0 1)
+     (q/begin-shape)
+     (q/curve-vertex 0 0)
+     (q/curve-vertex 0 0)
+     (q/curve-vertex 100 20)
+     (q/curve-vertex 100 80)
+     (q/curve-vertex 20 80)
+     (q/curve-vertex 0 0)
+     (q/curve-vertex 0 0)
+     (q/end-shape :close)
+
+     (q/begin-shape)
+     (q/curve-vertex 0 0 0)
+     (q/curve-vertex 0 0 0)
+     (q/curve-vertex 100 0 20)
+     (q/curve-vertex 100 0 80)
+     (q/curve-vertex 20 0 80)
+     (q/curve-vertex 0 0 0)
+     (q/curve-vertex 0 0 0)
+     (q/end-shape :close)))
+
+#?(:cljs
+   (defsnippet curve-vertex
+     "curve-vertex"
+     {}
+
+     (q/begin-shape)
+     (q/curve-vertex 0 0)
+     (q/curve-vertex 0 0)
+     (q/curve-vertex 100 20)
+     (q/curve-vertex 100 80)
+     (q/curve-vertex 20 80)
+     (q/curve-vertex 0 0)
+     (q/curve-vertex 0 0)
+     (q/end-shape :close)))
 
 #?(:clj
    (defsnippet quadratic-vertex
@@ -164,23 +192,14 @@
    (defsnippet texture
      "texture"
      {:renderer :p3d
-      :setup (q/set-state! :image (q/request-image "texture.jpg"))}
+      :setup (q/set-state! :image (q/load-image "texture.jpg"))}
 
      (if (zero? (.-width (q/state :image)))
        (q/text "Loading" 10 10)
        (let [gr (q/state :image)]
-         (q/with-translation [250 250]
-           (q/begin-shape)
+         (q/with-translation [50 0]
            (q/texture gr)
-           (q/vertex 50 100 75 100)
-           (q/vertex 100 50 100 75)
-           (q/vertex 100 -50 100 25)
-           (q/vertex 50 -100 75 0)
-           (q/vertex -50 -100 25 0)
-           (q/vertex -100 -50 0 25)
-           (q/vertex -100 50 0 75)
-           (q/vertex -50 100 25 100)
-           (q/end-shape :close))))))
+           (q/plane 200 200))))))
 
 #?(:clj
    (defsnippet texture-mode
@@ -212,34 +231,7 @@
          (q/vertex 0 0 0 0)
          (q/vertex 100 100 1 1)
          (q/vertex 0 100 0 1)
-         (q/end-shape :close))))
-
-   :cljs
-   (defsnippet texture-mode
-     "texture-mode"
-     {:renderer :p3d
-      :setup (q/set-state! :image (q/request-image "texture.jpg"))}
-
-     (if (zero? (.-width (q/state :image)))
-       (q/text "Loading" 10 10)
-       (let [gr (q/state :image)]
-         (q/with-translation [375 125]
-           (q/begin-shape)
-           (q/texture gr)
-           (q/texture-mode :image)
-           (q/vertex 0 0 0 0)
-           (q/vertex 100 100 100 100)
-           (q/vertex 0 100 0 100)
-           (q/end-shape :close))
-
-         (q/with-translation [125 375]
-           (q/begin-shape)
-           (q/texture gr)
-           (q/texture-mode :normal)
-           (q/vertex 0 0 0 0)
-           (q/vertex 100 100 1 1)
-           (q/vertex 0 100 0 1)
-           (q/end-shape :close))))))
+         (q/end-shape :close)))))
 
 #?(:clj
    (defsnippet texture-wrap

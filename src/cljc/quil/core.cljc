@@ -13,7 +13,7 @@
 
      :cljs
      (:require clojure.string
-               org.processingjs.Processing
+               cljsjs.p5
                [quil.sketch :as ap :include-macros true]
                [quil.util :as u :include-macros true])))
 
@@ -45,10 +45,13 @@
 (u/generate-quil-constants
  #?(:clj :clj :cljs :cljs)
  arc-modes (:open :chord :pie)
+ #?@(:cljs
+     (angle-modes (:radians :degrees)))
  shape-modes (:points :lines :triangles :triangle-fan :triangle-strip :quads :quad-strip)
  blend-modes (:blend :add :subtract :darkest :lightest :difference :exclusion :multiply
                      :screen :overlay :replace :hard-light :soft-light :dodge :burn)
- color-modes (:rgb :hsb)
+ #?@(:clj (color-modes (:rgb :hsb)))
+ #?@(:cljs (color-modes (:rgb :hsb :hsl)))
  image-formats (:rgb :argb :alpha)
  ellipse-modes (:center :radius :corner :corners)
  hint-options (:enable-async-saveframe :disable-async-saveframe
@@ -68,6 +71,7 @@
  horizontal-alignment-modes (:left :center :right)
  vertical-alignment-modes (:top :bottom :center :baseline)
  text-modes (:model :shape)
+ #?@(:cljs (text-styles (:normal :italic :bold)))
  texture-modes (:image :normal)
  texture-wrap-modes (:clamp :repeat)
  filter-modes (:threshold :gray :invert :posterize :blur :opaque :erode :dilate)
@@ -300,24 +304,26 @@
   alpha
   "Extracts the alpha value from a color."
   [color]
-  (.alpha (current-graphics) (unchecked-int color)))
+  #?(:clj (.alpha (current-graphics) (unchecked-int color))
+     :cljs (.alpha (current-graphics) color)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "ambient()"
-    :category "Lights, Camera"
-    :subcategory "Material Properties"
-    :added "1.0"}
-  ambient
-  "Sets the ambient reflectance for shapes drawn to the screen. This
-  is combined with the ambient light component of environment. The
-  color components set through the parameters define the
-  reflectance. For example in the default color mode, setting x=255,
-  y=126, z=0, would cause all the red light to reflect and half of the
-  green light to reflect. Used in combination with emissive, specular,
-  and shininess in setting the material properties of shapes."
-  ([gray] (.ambient (current-graphics) (float gray)))
-  ([r g b] (.ambient (current-graphics) (float r) (float g) (float b))))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "ambient()"
+       :category "Lights, Camera"
+       :subcategory "Material Properties"
+       :added "1.0"}
+     ambient
+     "Sets the ambient reflectance for shapes drawn to the screen. This
+     is combined with the ambient light component of environment. The
+     color components set through the parameters define the
+     reflectance. For example in the default color mode, setting x=255,
+     y=126, z=0, would cause all the red light to reflect and half of the
+     green light to reflect. Used in combination with emissive, specular,
+     and shininess in setting the material properties of shapes."
+     ([gray] (.ambient (current-graphics) (float gray)))
+     ([r g b] (.ambient (current-graphics) (float r) (float g) (float b)))))
 
 (defn
   ^{:requires-bindings true
@@ -340,6 +346,19 @@
    (.ambientLight (current-graphics) (float red) (float green) (float blue)
                   (float x) (float y) (float z))))
 
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "angleMode()"
+       :category "Math"
+       :subcategory "Trigonometry"
+       :added "2.8.0"}
+     angle-mode
+     "Sets the current mode of p5 to given mode. Default mode is :radians."
+     ([mode]
+      (let [mode (u/resolve-constant-key mode angle-modes)]
+        (.angleMode (current-graphics) mode)))))
+
 (defn
   ^{:requires-bindings true
     :processing-name "applyMatrix()"
@@ -356,15 +375,21 @@
       (.applyMatrix (current-graphics)
                     (float n00) (float n01) (float n02)
                     (float n10) (float n11) (float n12))))
-  ([n00 n01 n02 n03
-    n10 n11 n12 n13
-    n20 n21 n22 n23
-    n30 n31 n32 n33]
-   (.applyMatrix (current-graphics)
-                 (float n00) (float n01) (float n02) (float n03)
-                 (float n10) (float n11) (float n12) (float n13)
-                 (float n20) (float n21) (float n22) (float n23)
-                 (float n30) (float n31) (float n32) (float n33))))
+  #?(:clj
+     ([n00 n01 n02 n03
+       n10 n11 n12 n13
+       n20 n21 n22 n23
+       n30 n31 n32 n33]
+      (.applyMatrix (current-graphics)
+                    (float n00) (float n01) (float n02) (float n03)
+                    (float n10) (float n11) (float n12) (float n13)
+                    (float n20) (float n21) (float n22) (float n23)
+                    (float n30) (float n31) (float n32) (float n33))))
+  #?(:cljs
+     ([a b c d e f]
+      (.applyMatrix (current-graphics)
+                    (float a) (float b) (float c)
+                    (float d) (float e) (float f)))))
 
 (defn
   ^{:requires-bindings true
@@ -435,26 +460,26 @@
   #?(:clj (PApplet/atan2 (float y) (float x))
      :cljs (.atan2 (ap/current-applet) y x)))
 
-(defn
-  ^{:requires-bindings false
-    :processing-name "PFont.list()"
-    :category "Typography"
-    :subcategory "Loading & Displaying"
-    :added "1.0"}
-  available-fonts
-  "A sequence of strings representing the fonts on this system
-  available for use.
+#(:clj
+  (defn
+    ^{:requires-bindings false
+      :processing-name "PFont.list()"
+      :category "Typography"
+      :subcategory "Loading & Displaying"
+      :added "1.0"}
+    available-fonts
+    "A sequence of strings representing the fonts on this system
+    available for use.
 
-  Because of limitations in Java, not all fonts can be used and some
-  might work with one operating system and not others. When sharing a
-  sketch with other people or posting it on the web, you may need to
-  include a .ttf or .otf version of your font in the data directory of
-  the sketch because other people might not have the font installed on
-  their computer. Only fonts that can legally be distributed should be
-  included with a sketch."
-  []
-  #?(:clj (seq (PFont/list))
-     :cljs (seq (.list js/PFont))))
+    Because of limitations in Java, not all fonts can be used and some
+    might work with one operating system and not others. When sharing a
+    sketch with other people or posting it on the web, you may need to
+    include a .ttf or .otf version of your font in the data directory of
+    the sketch because other people might not have the font installed on
+    their computer. Only fonts that can legally be distributed should be
+    included with a sketch."
+    []
+    (seq (PFont/list))))
 
 (defn
   ^{:requires-bindings true
@@ -489,22 +514,23 @@
   [^PImage img]
   (.background (current-graphics) img))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "beginCamera()"
-    :category "Lights, Camera"
-    :subcategory "Camera"
-    :added "1.0"}
-  begin-camera
-  "Sets the matrix mode to the camera matrix so calls such as
-  translate, rotate, apply-matrix and reset-matrix affect the
-  camera. begin-camera should always be used with a following
-  end-camera and pairs of begin-camera and end-camera cannot be
-  nested.
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "beginCamera()"
+       :category "Lights, Camera"
+       :subcategory "Camera"
+       :added "1.0"}
+     begin-camera
+     "Sets the matrix mode to the camera matrix so calls such as
+     translate, rotate, apply-matrix and reset-matrix affect the
+     camera. begin-camera should always be used with a following
+     end-camera and pairs of begin-camera and end-camera cannot be
+     nested.
 
-  For most situations the camera function will be sufficient."
-  []
-  (.beginCamera (current-graphics)))
+     For most situations the camera function will be sufficient."
+     []
+     (.beginCamera (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -665,22 +691,21 @@
                   (float cx2) (float cy2) (float cz2)
                   (float x) (float y) (float z))))
 
-(defn
-  ^{:require-binding false
-    :processing-name "binary()"
-    :category "Data"
-    :subcategory "Conversion"
-    :added "1.0"}
-  binary
-  "Returns a string representing the binary value of an int, char or
-  byte. When converting an int to a string, it is possible to specify
-  the number of digits used."
-  ([val]
-   #?(:clj (PApplet/binary (int val))
-      :cljs (.binary (ap/current-applet) val)))
-  ([val num-digits]
-   #?(:clj (PApplet/binary (int val) (int num-digits))
-      :cljs (.binary (ap/current-applet) val num-digits))))
+#?(:clj
+   (defn
+     ^{:require-binding false
+       :processing-name "binary()"
+       :category "Data"
+       :subcategory "Conversion"
+       :added "1.0"}
+     binary
+     "Returns a string representing the binary value of an int, char or
+     byte. When converting an int to a string, it is possible to specify
+     the number of digits used."
+     ([val]
+      (PApplet/binary (int val)))
+     ([val num-digits]
+      (PApplet/binary (int val) (int num-digits)))))
 
 (defn
   ^{:requires-bindings true
@@ -724,65 +749,64 @@
                 Photoshop."
   ([x y width height dx dy dwidth dheight mode]
    (blend (current-graphics) (current-graphics) x y width height dx dy dwidth dheight mode))
-  ([^PImage src-img x y width height dx dy dwidth dheight mode]
+  ([src-img x y width height dx dy dwidth dheight mode]
    (blend src-img (current-graphics) x y width height dx dy dwidth dheight mode))
-  ([^PImage src-img ^PImage dest-img x y width height dx dy dwidth dheight mode]
+  ([src-img dest-img x y width height dx dy dwidth dheight mode]
    (let [mode (u/resolve-constant-key mode blend-modes)]
      (.blend dest-img src-img (int x) (int y) (int width) (int height)
-             (int dx) (int dy) (int dwidth) (int dheight) (int mode)))))
-
-(defn
-  ^{:requires-bindings false
-    :processing-name "blendColor()"
-    :processing-link nil
-    :category "Color"
-    :subcategory "Creating & Reading"
-    :added "1.0"}
-  blend-color
-  "Blends two color values together based on the blending mode given specified
-  with the mode keyword.
-
-  Available blend modes are:
-
-  :blend      - linear interpolation of colours: C = A*factor + B
-  :add        - additive blending with white clip:
-                                            C = min(A*factor + B, 255)
-  :subtract   - subtractive blending with black clip:
-                                            C = max(B - A*factor, 0)
-  :darkest    - only the darkest colour succeeds:
-                                            C = min(A*factor, B)
-  :lightest   - only the lightest colour succeeds:
-                                            C = max(A*factor, B)
-  :difference - subtract colors from underlying image.
-  :exclusion  - similar to :difference, but less extreme.
-  :multiply   - Multiply the colors, result will always be darker.
-  :screen     - Opposite multiply, uses inverse values of the colors.
-  :overlay    - A mix of :multiply and :screen. Multiplies dark values
-                and screens light values.
-  :hard-light - :screen when greater than 50% gray, :multiply when
-                lower.
-  :soft-light - Mix of :darkest and :lightest. Works like :overlay,
-                but not as harsh.
-  :dodge      - Lightens light tones and increases contrast, ignores
-                darks.
-                Called \"Color Dodge\" in Illustrator and Photoshop.
-  :burn       - Darker areas are applied, increasing contrast, ignores
-                lights. Called \"Color Burn\" in Illustrator and
-                Photoshop."
-  [c1 c2 mode]
-  (let [mode (u/resolve-constant-key mode blend-modes)]
-    #?(:clj (PApplet/blendColor (unchecked-int c1) (unchecked-int c2) (int mode))
-       :cljs (.blendColor (current-graphics) c1 c2 mode))))
+                              (int dx) (int dy) (int dwidth) (int dheight) mode))))
 
 #?(:clj
    (defn
-     ^{:requires-bindings true
-       :processing-name "blendMode()"
-       :category "Image"
-       :subcategory "Rendering"
-       :added "2.0"}
-     blend-mode
-     "Blends the pixels in the display window according to the defined mode.
+     ^{:requires-bindings false
+       :processing-name "blendColor()"
+       :processing-link nil
+       :category "Color"
+       :subcategory "Creating & Reading"
+       :added "1.0"}
+     blend-color
+     "Blends two color values together based on the blending mode given specified
+     with the mode keyword.
+
+     Available blend modes are:
+
+     :blend      - linear interpolation of colours: C = A*factor + B
+     :add        - additive blending with white clip:
+                                               C = min(A*factor + B, 255)
+     :subtract   - subtractive blending with black clip:
+                                               C = max(B - A*factor, 0)
+     :darkest    - only the darkest colour succeeds:
+                                               C = min(A*factor, B)
+     :lightest   - only the lightest colour succeeds:
+                                               C = max(A*factor, B)
+     :difference - subtract colors from underlying image.
+     :exclusion  - similar to :difference, but less extreme.
+     :multiply   - Multiply the colors, result will always be darker.
+     :screen     - Opposite multiply, uses inverse values of the colors.
+     :overlay    - A mix of :multiply and :screen. Multiplies dark values
+                   and screens light values.
+     :hard-light - :screen when greater than 50% gray, :multiply when
+                   lower.
+     :soft-light - Mix of :darkest and :lightest. Works like :overlay,
+                   but not as harsh.
+     :dodge      - Lightens light tones and increases contrast, ignores
+                   darks.
+                   Called \"Color Dodge\" in Illustrator and Photoshop.
+     :burn       - Darker areas are applied, increasing contrast, ignores
+                   lights. Called \"Color Burn\" in Illustrator and
+                   Photoshop."
+     [c1 c2 mode]
+     (let [mode (u/resolve-constant-key mode blend-modes)]
+       (PApplet/blendColor (unchecked-int c1) (unchecked-int c2) (int mode)))))
+
+(defn
+  ^{:requires-bindings true
+    :processing-name "blendMode()"
+    :category "Image"
+    :subcategory "Rendering"
+    :added "2.0"}
+  blend-mode
+  "Blends the pixels in the display window according to the defined mode.
   There is a choice of the following modes to blend the source pixels (A)
   with the ones of pixels already in the display window (B):
 
@@ -804,10 +828,10 @@
   Note: :hard-light, :soft-light, :dodge, :overlay, :dodge, :burn, :difference
   modes are not supported by this function.
 
-  factor is alpha value of pixel being drawed"
-     ([mode]
-      (let [mode (u/resolve-constant-key mode blend-modes)]
-        (.blendMode (current-graphics) mode)))))
+  factor is alpha value of pixel being drawn"
+  ([mode]
+   (let [mode (u/resolve-constant-key mode blend-modes)]
+     (.blendMode (current-graphics) mode))))
 
 (defn
   ^{:requires-bindings true
@@ -819,7 +843,8 @@
   "Extracts the blue value from a color, scaled to match current color-mode.
   Returns a float."
   [color]
-  (.blue (current-graphics) (unchecked-int color)))
+  #?(:clj (.blue (current-graphics) (unchecked-int color))
+     :cljs (.blue (current-graphics) color)))
 
 (defn
   ^{:requires-bindings true
@@ -841,7 +866,7 @@
   brightness
   "Extracts the brightness value from a color. Returns a float."
   [color]
-  (.brightness (current-graphics) (unchecked-int color)))
+  (.brightness (current-graphics) color))
 
 (defn
   ^{:requires-bindings true
@@ -868,7 +893,7 @@
   upY:      1
   upZ:      0
 
-  Similar imilar to gluLookAt() in OpenGL, but it first clears the
+  Similar to gluLookAt() in OpenGL, but it first clears the
   current camera settings."
   ([] (.camera (current-graphics)))
   ([eyeX eyeY eyeZ centerX centerY centerZ upX upY upZ]
@@ -918,7 +943,7 @@
      clip
      "Limits the rendering to the boundaries of a rectangle defined by
   the parameters. The boundaries are drawn based on the state of
-  the (image-mode) fuction, either :corner, :corners, or :center.
+  the (image-mode) function, either :corner, :corners, or :center.
   To disable use (no-clip)."
      [x y w h]
      (.clip (current-graphics) (float x) (float y) (float w) (float h))))
@@ -930,7 +955,7 @@
     :subcategory "Creating & Reading"
     :added "1.0"}
   color
-  "Creates an integer representation of a color The parameters are
+  "Creates an integer representation of a color. The parameters are
   interpreted as RGB or HSB values depending on the current
   color-mode. The default mode is RGB values from 0 to 255 and
   therefore, the function call (color 255 204 0) will return a bright
@@ -953,7 +978,7 @@
     :added "1.0"}
   color-mode
   "Changes the way Processing interprets color data. Available modes
-  are :rgb and :hsb.By default, the parameters for fill, stroke,
+  are :rgb and :hsb. By default, the parameters for fill, stroke,
   background, and color are defined by values between 0 and 255 using
   the :rgb color model. The color-mode fn is used to change the
   numerical range used for specifying colors and to switch color
@@ -963,16 +988,38 @@
   parameters range1, range2, range3, and range 4."
   ([mode]
    (let [mode (u/resolve-constant-key mode color-modes)]
-     (.colorMode (current-graphics) (int mode))))
+     (.colorMode (current-graphics) mode)))
   ([mode max]
    (let [mode (u/resolve-constant-key mode color-modes)]
-     (.colorMode (current-graphics) (int mode) (float max))))
+     (.colorMode (current-graphics) mode (float max))))
   ([mode max-x max-y max-z]
    (let [mode (u/resolve-constant-key mode color-modes)]
-     (.colorMode (current-graphics) (int mode) (float max-x) (float max-y) (float max-z))))
+     (.colorMode (current-graphics) mode (float max-x) (float max-y) (float max-z))))
   ([mode max-x max-y max-z max-a]
    (let [mode (u/resolve-constant-key mode color-modes)]
-     (.colorMode (current-graphics) (int mode) (float max-x) (float max-y) (float max-z) (float max-a)))))
+     (.colorMode (current-graphics) mode (float max-x) (float max-y) (float max-z) (float max-a)))))
+
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "cone()"
+       :category "Shape"
+       :subcategory "3D Primitives"
+       :added "1.0"}
+     cone
+     "Draw a cone with given radius and height.
+      Optional parameters:
+        detail-x: number of segments, the more segments the smoother geometry default is 24
+        detail-y: number of segments, the more segments the smoother geometry default is 24
+        cap:      whether to draw the base of the cone"
+     ([radius height]
+      (.cone (current-graphics) (float radius) (float height)))
+     ([radius height detail-x]
+      (.cone (current-graphics) (float radius) (float height) (int detail-x)))
+     ([radius height detail-x detail-y]
+      (.cone (current-graphics) (float radius) (float height) (int detail-x) (int detail-y)))
+     ([radius height detail-x detail-y cap]
+      (.cone (current-graphics) (float radius) (float height) (int detail-x) (int detail-y) (boolean cap)))))
 
 (defn
   ^{:requires-bindings false
@@ -996,7 +1043,7 @@
     :subcategory "Pixels"
     :added "1.0"}
   copy
-  "Copies a region of pixels from the one image to another. If src-img
+  "Copies a region of pixels from one image to another. If src-img
   is not specified it defaults to current-graphics. If dest-img is not
   specified - it defaults to current-graphics. If the source
   and destination regions aren't the same size, it will automatically
@@ -1004,16 +1051,16 @@
   alpha information is used in the process, however if the source
   image has an alpha channel set, it will be copied as well. "
   ([[sx sy swidth sheight] [dx dy dwidth dheight]]
-   (.copy (current-graphics)
-          (int sx) (int sy) (int swidth) (int sheight)
-          (int dx) (int dy) (int dwidth) (int dheight)))
+   (copy (current-graphics) [sx sy swidth sheight]
+                            [dx dy dwidth dheight]))
 
-  ([^PImage src-img [sx sy swidth sheight] [dx dy dwidth dheight]]
-   (copy src-img (current-graphics) [sx sy swidth sheight] [dx dy dwidth dheight]))
+  ([src-img [sx sy swidth sheight] [dx dy dwidth dheight]]
+   (copy src-img (current-graphics) [sx sy swidth sheight]
+                                    [dx dy dwidth dheight]))
 
-  ([^PImage src-img ^PImage dest-img [sx sy swidth sheight] [dx dy dwidth dheight]]
+  ([src-img dest-img [sx sy swidth sheight] [dx dy dwidth dheight]]
    (.copy dest-img src-img (int sx) (int sy) (int swidth) (int sheight)
-          (int dx) (int dy) (int dwidth) (int dheight))))
+                           (int dx) (int dy) (int dwidth) (int dheight))))
 
 (defn
   ^{:requires-bindings false
@@ -1112,7 +1159,7 @@
   using save to write a PNG or TGA file, the transparency of the
   graphics object will be honored."
   ([w h]
-   (.createGraphics (ap/current-applet) (int w) (int h) #?(:cljs :p2d)))
+   (.createGraphics (ap/current-applet) (int w) (int h)))
   ([w h renderer]
    (.createGraphics (ap/current-applet) (int w) (int h) (ap/resolve-renderer renderer)))
   ([w h renderer path]
@@ -1120,26 +1167,41 @@
                     #?(:clj (u/absolute-path path)
                        :cljs path))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "createImage()"
-    :category "Image"
-    :subcategory nil
-    :added "1.0"}
-  create-image
-  "Creates a new PImage (the datatype for storing images). This
-  provides a fresh buffer of pixels to play with. Set the size of the
-  buffer with the width and height parameters. The format parameter
-  defines how the pixels are stored. See the PImage reference for more
-  information.
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "createImage()"
+       :category "Image"
+       :subcategory nil
+       :added "1.0"}
+     create-image
+     "Creates a new PImage (the datatype for storing images). This
+     provides a fresh buffer of pixels to play with. Set the size of the
+     buffer with the width and height parameters. The format parameter
+     defines how the pixels are stored. See the PImage reference for more
+     information.
 
-  Possible formats: :rgb, :argb, :alpha (grayscale alpha channel)
+     Possible formats: :rgb, :argb, :alpha (grayscale alpha channel)
 
-  Prefer using create-image over initialising new PImage instances
-  directly."
-  [w h format]
-  (let [format (u/resolve-constant-key format image-formats)]
-    (.createImage (ap/current-applet) (int w) (int h) (int format))))
+     Prefer using create-image over initialising new PImage instances
+     directly."
+     [w h format]
+     (let [format (u/resolve-constant-key format image-formats)]
+       (.createImage (ap/current-applet) (int w) (int h) format))))
+
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "createImage()"
+       :category "Image"
+       :subcategory nil
+       :added "1.0"}
+     create-image
+     "Creates a new p5.Image (the datatype for storing images). This
+     provides a fresh buffer of pixels to play with. Set the size of the
+     buffer with the width and height parameters."
+     [w h]
+     (.createImage (ap/current-applet) (int w) (int h))))
 
 (defn
   ^{:requires-bindings true
@@ -1237,7 +1299,8 @@
   renderer as the default (:java2d) renderer does not use this
   information."
   [detail]
-  (.curveDetail (current-graphics) (int detail)))
+  #?(:clj (.curveDetail (current-graphics) (int detail))
+     :cljs (.curveDetail (current-graphics) detail)))
 
 (defn
   ^{:requires-bindings true
@@ -1246,7 +1309,7 @@
     :subcategory "Curves"
     :added "1.0"}
   curve-point
-  "Evalutes the curve at point t for points a, b, c, d. The parameter
+  "Evaluates the curve at point t for points a, b, c, d. The parameter
   t varies between 0 and 1, a and d are points on the curve, and b c
   and are the control points. This can be done once with the x
   coordinates and a second time with the y coordinates to get the
@@ -1301,7 +1364,22 @@
   fourth points. The curve-vertex function is an implementation of
   Catmull-Rom splines."
   ([x y] (.curveVertex (current-graphics) (float x) (float y)))
-  ([x y z] (.curveVertex (current-graphics) (float x) (float y) (float z))))
+  #?(:clj ([x y z] (.curveVertex (current-graphics) (float x) (float y) (float z)))))
+
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "cylinder()"
+       :category "Shape"
+       :subcategory "3D Primitives"
+       :added "1.0"}
+     cylinder
+     "Draw a cylinder with given radius and height."
+     ([radius height]
+      (.cylinder (current-graphics) (float radius) (float height)))
+
+     ([radius height detail-x detail-y bottom-cap top-cap]
+      (.cylinder (current-graphics) (float radius) (float height) (int detail-x) (int detail-y) (boolean bottom-cap) (boolean top-cap)))))
 
 (defn
   ^{:requires-bindings false
@@ -1428,7 +1506,7 @@
     :subcategory "Attributes"
     :added "1.0"}
   ellipse-mode
-  "Modifies the origin of the ellispse according to the specified mode:
+  "Modifies the origin of the ellipse according to the specified mode:
 
   :center  - specifies the location of the ellipse as
              the center of the shape. (Default).
@@ -1441,7 +1519,27 @@
              corners of the ellipse's bounding box."
   [mode]
   (let [mode (u/resolve-constant-key mode ellipse-modes)]
-    (.ellipseMode (current-graphics) (int mode))))
+    #?(:clj (.ellipseMode (current-graphics) (int mode))
+       :cljs (.ellipseMode (current-graphics) mode)))
+
+ #?(:cljs
+    (defn
+      ^{:requires-bindings true
+        :processing-name "ellipsoid()"
+        :category "Shape"
+        :subcategory "3D Primitives"
+        :added "2.9.0"}
+      ellipsoid
+      "Draw an ellipsoid with given radius
+        Optional parameters:
+          detail-x: number of segments, the more segments the smoother geometry default is 24
+          detail-y: number of segments, the more segments the smoother geometry default is 16"
+      ([radius-x radius-y radius-z]
+       (.ellipsoid (current-graphics) radius-x radius-y radius-z))
+      ([radius-x radius-y radius-z detail-x]
+       (.ellipsoid (current-graphics) (float radius-x) (float radius-y) (float radius-z) (int detail-x)))
+      ([radius-x radius-y radius-z detail-x detail-y]
+       (.ellipsoid (current-graphics) (float radius-x) (float radius-y) (float radius-z) (int detail-x) (detail-y))))))
 
 (defn
   ^{:requires-bindings true
@@ -1459,16 +1557,17 @@
   ([gray] (.emissive (current-graphics) (float gray)))
   ([r g b] (.emissive (current-graphics) (float r) (float g) (float b))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "endCamera()"
-    :category "Lights, Camera"
-    :subcategory "Camera"
-    :added "1.0"}
-  end-camera
-  "Unsets the matrix mode from the camera matrix. See begin-camera."
-  []
-  (.endCamera (current-graphics)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "endCamera()"
+       :category "Lights, Camera"
+       :subcategory "Camera"
+       :added "1.0"}
+     end-camera
+     "Unsets the matrix mode from the camera matrix. See begin-camera."
+     []
+     (.endCamera (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -1510,11 +1609,10 @@
   ([] (.endShape (current-graphics)))
   ([mode]
    (when-not (= :close mode)
-     #?(:clj (throw (Exception. (str "Unknown mode value: " mode ". Expected :close")))
-        :cljs nil))
+     (throw (Exception. (str "Unknown mode value: " mode ". Expected :close"))))
    (.endShape (current-graphics)
               #?(:clj PApplet/CLOSE
-                 :cljs 2))))
+                 :cljs (aget js/p5.prototype "CLOSE")))))
 
 (defn
   ^{:requires-bindings true
@@ -1528,7 +1626,8 @@
   completed (or after setup completes if called during the setup
   method). "
   []
-  (.exit (ap/current-applet)))
+  #?(:clj (.exit (ap/current-applet))
+     :cljs (.remove (ap/current-applet))))
 
 (defn
   ^{:requires-bindings false
@@ -1581,21 +1680,20 @@
    (.fill (current-graphics) (float r) (float g) (float b) (float alpha))
    (save-current-fill [r g b alpha])))
 
-#?(:clj
-   (defn
-     ^{:requires-bindings true
-       :processing-name "displayDensity()"
-       :category "Environment"
-       :subcategory nil
-       :added "2.4.0"}
-     display-density
-     "This function returns the number 2 if the screen is a high-density
+(defn
+  ^{:requires-bindings true
+    :processing-name "displayDensity()"
+    :category "Environment"
+    :subcategory nil
+    :added "2.4.0"}
+  display-density
+  "This function returns the number 2 if the screen is a high-density
   screen (called a Retina display on OS X or high-dpi on Windows and
   Linux) and a 1 if not. This information is useful for a program to
   adapt to run at double the pixel density on a screen that supports
   it. Can be used in conjunction with (pixel-density)"
-     ([] (.displayDensity (ap/current-applet)))
-     ([display] (.displayDensity (ap/current-applet) display))))
+  ([] (.displayDensity (ap/current-applet)))
+  ([display] (.displayDensity (ap/current-applet) display)))
 
 (defn
   ^{:requires-bindings true
@@ -1622,9 +1720,9 @@
                colors specified as the level parameter. The parameter can
                be set to values between 2 and 255, but results are most
                noticeable in the lower ranges.
-  :blur      - executes a Guassian blur with the level parameter
+  :blur      - executes a Gaussian blur with the level parameter
                specifying the extent of the blurring. If no level
-               parameter is used, the blur is equivalent to Guassian
+               parameter is used, the blur is equivalent to Gaussian
                blur of radius 1.
   :opaque    - sets the alpha channel to entirely opaque. Doesn't work
                with level.
@@ -1632,11 +1730,11 @@
   :dilate    - increases the light areas.  Doesn't work with level."
   ([mode]
    (.filter (current-graphics)
-            (int (u/resolve-constant-key mode filter-modes))))
+            (u/resolve-constant-key mode filter-modes)))
 
   ([mode level]
    (let [mode (u/resolve-constant-key mode filter-modes)]
-     (.filter (current-graphics) (int mode) (float level)))))
+     (.filter (current-graphics) mode (float level)))))
 
 #?(:clj
    (defn
@@ -1696,8 +1794,7 @@
   current-frame-rate
   "Returns the current framerate"
   []
-  #?(:clj (.frameRate (ap/current-applet))
-     :cljs (.-__frameRate (ap/current-applet))))
+  (.frameRate (ap/current-applet)))
 
 (defn
   ^{:requires-bindings true
@@ -1728,19 +1825,20 @@
     (swap! (internal-state) assoc :frame-rate new-rate)
     (.frameRate (ap/current-applet) (float new-rate))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "frustum()"
-    :category "Lights, Camera"
-    :subcategory "Camera"
-    :added "1.0"}
-  frustum
-  "Sets a perspective matrix defined through the parameters. Works
-  like glFrustum, except it wipes out the current perspective matrix
-  rather than muliplying itself with it."
-  [left right bottom top near far]
-  (.frustum (current-graphics) (float left) (float right) (float bottom) (float top)
-            (float near) (float far)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "frustum()"
+       :category "Lights, Camera"
+       :subcategory "Camera"
+       :added "1.0"}
+     frustum
+     "Sets a perspective matrix defined through the parameters. Works
+     like glFrustum, except it wipes out the current perspective matrix
+     rather than multiplying itself with it."
+     [left right bottom top near far]
+     (.frustum (current-graphics) (float left) (float right) (float bottom) (float top)
+               (float near) (float far))))
 
 (defn
   ^{:requires-bindings true
@@ -1781,7 +1879,8 @@
   color-mode. This value is always returned as a float so be careful
   not to assign it to an int value."
   [col]
-  (.green (current-graphics) (unchecked-int col)))
+  #?(:clj (.green (current-graphics) (unchecked-int col))
+     :cljs (.green (current-graphics) col)))
 
 (defn
   ^{:require-binding false
@@ -1813,75 +1912,76 @@
   []
   (.-height (ap/current-applet)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "hint()"
-    :processing-link nil
-    :category "Rendering"
-    :subcategory nil
-    :added "1.0"}
-  hint
-  "Set various hints and hacks for the renderer. This is used to
-  handle obscure rendering features that cannot be implemented in a
-  consistent manner across renderers. Many options will often graduate
-  to standard features instead of hints over time.
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "hint()"
+       :processing-link nil
+       :category "Rendering"
+       :subcategory nil
+       :added "1.0"}
+     hint
+     "Set various hints and hacks for the renderer. This is used to
+     handle obscure rendering features that cannot be implemented in a
+     consistent manner across renderers. Many options will often graduate
+     to standard features instead of hints over time.
 
-  Options:
+     Options:
 
-  :enable-native-fonts - Use the native version fonts when they are
-    installed, rather than the bitmapped version from a .vlw
-    file. This is useful with the default (or JAVA2D) renderer
-    setting, as it will improve font rendering speed. This is not
-    enabled by default, because it can be misleading while testing
-    because the type will look great on your machine (because you have
-    the font installed) but lousy on others' machines if the identical
-    font is unavailable. This option can only be set per-sketch, and
-    must be called before any use of text-font.
+     :enable-native-fonts - Use the native version fonts when they are
+       installed, rather than the bitmapped version from a .vlw
+       file. This is useful with the default (or JAVA2D) renderer
+       setting, as it will improve font rendering speed. This is not
+       enabled by default, because it can be misleading while testing
+       because the type will look great on your machine (because you have
+       the font installed) but lousy on others' machines if the identical
+       font is unavailable. This option can only be set per-sketch, and
+       must be called before any use of text-font.
 
-  :disable-native-fonts - Disables native font support.
+     :disable-native-fonts - Disables native font support.
 
-  :disable-depth-test - Disable the zbuffer, allowing you to draw on
-    top of everything at will. When depth testing is disabled, items
-    will be drawn to the screen sequentially, like a painting. This
-    hint is most often used to draw in 3D, then draw in 2D on top of
-    it (for instance, to draw GUI controls in 2D on top of a 3D
-    interface). Starting in release 0149, this will also clear the
-    depth buffer. Restore the default with :enable-depth-test
-    but note that with the depth buffer cleared, any 3D drawing that
-    happens later in draw will ignore existing shapes on the screen.
+     :disable-depth-test - Disable the zbuffer, allowing you to draw on
+       top of everything at will. When depth testing is disabled, items
+       will be drawn to the screen sequentially, like a painting. This
+       hint is most often used to draw in 3D, then draw in 2D on top of
+       it (for instance, to draw GUI controls in 2D on top of a 3D
+       interface). Starting in release 0149, this will also clear the
+       depth buffer. Restore the default with :enable-depth-test
+       but note that with the depth buffer cleared, any 3D drawing that
+       happens later in draw will ignore existing shapes on the screen.
 
-  :enable-depth-test - Enables the zbuffer.
+     :enable-depth-test - Enables the zbuffer.
 
-  :enable-depth-sort - Enable primitive z-sorting of triangles and
-    lines in :p3d and :opengl rendering modes. This can slow
-    performance considerably, and the algorithm is not yet perfect.
+     :enable-depth-sort - Enable primitive z-sorting of triangles and
+       lines in :p3d and :opengl rendering modes. This can slow
+       performance considerably, and the algorithm is not yet perfect.
 
-  :disable-depth-sort - Disables hint :enable-depth-sort
+     :disable-depth-sort - Disables hint :enable-depth-sort
 
-  :disable-opengl-errors - Speeds up the OPENGL renderer setting
-     by not checking for errors while running.
+     :disable-opengl-errors - Speeds up the OPENGL renderer setting
+        by not checking for errors while running.
 
-  :enable-opengl-errors - Turns on OpenGL error checking
+     :enable-opengl-errors - Turns on OpenGL error checking
 
-  :enable-depth-mask
-  :disable-depth-mask
+     :enable-depth-mask
+     :disable-depth-mask
 
-  :enable-optimized-stroke
-  :disable-optimized-stroke
-  :enable-retina-pixels
-  :disable-retina-pixels
-  :enable-stroke-perspective
-  :disable-stroke-perspective
-  :enable-stroke-pure
-  :disable-stroke-pure
-  :enable-texture-mipmaps
-  :disable-texture-mipmaps
-"
-  [hint-type]
-  (let [hint-type (if (keyword? hint-type)
-                    (get hint-options hint-type)
-                    hint-type)]
-    (.hint (current-graphics) (int hint-type))))
+     :enable-optimized-stroke
+     :disable-optimized-stroke
+     :enable-retina-pixels
+     :disable-retina-pixels
+     :enable-stroke-perspective
+     :disable-stroke-perspective
+     :enable-stroke-pure
+     :disable-stroke-pure
+     :enable-texture-mipmaps
+     :disable-texture-mipmaps
+   "
+     [hint-type]
+     (let [hint-type (if (keyword? hint-type)
+                       (get hint-options hint-type)
+                       hint-type)]
+       (.hint (current-graphics) (int hint-type)))))
 
 (defn
   ^{:requires-bindings false
@@ -1904,7 +2004,8 @@
   hue
   "Extracts the hue value from a color."
   [col]
-  (.hue (current-graphics) (unchecked-int col)))
+  #?(:clj (.hue (current-graphics) (unchecked-int col))
+     :cljs (.hue (current-graphics) col)))
 
 (defn
   ^{:requires-bindings true
@@ -1960,9 +2061,9 @@
                colors specified as the level parameter. The parameter can
                be set to values between 2 and 255, but results are most
                noticeable in the lower ranges.
-  :blur      - executes a Guassian blur with the level parameter
+  :blur      - executes a Gaussian blur with the level parameter
                specifying the extent of the blurring. If no level
-               parameter is used, the blur is equivalent to Guassian
+               parameter is used, the blur is equivalent to Gaussian
                blur of radius 1.
   :opaque    - sets the alpha channel to entirely opaque. Doesn't work
                with level.
@@ -1970,10 +2071,10 @@
   :dilate    - increases the light areas.  Doesn't work with level."
   ([^PImage img mode]
    (let [mode (u/resolve-constant-key mode filter-modes)]
-     (.filter img (int mode))))
+     (.filter img mode)))
   ([^PImage img mode level]
    (let [mode (u/resolve-constant-key mode filter-modes)]
-     (.filter img (int mode) (float level)))))
+     (.filter img mode (float level)))))
 
 (defn
   ^{:requires-bindings true
@@ -1996,7 +2097,8 @@
   :center  - draw images centered at the given x and y position."
   [mode]
   (let [mode (u/resolve-constant-key mode image-modes)]
-    (.imageMode (current-graphics) (int mode))))
+    #?(:clj (.imageMode (current-graphics) (int mode))
+       :cljs (.imageMode (current-graphics) mode))))
 
 (defn
   ^{:requires-bindings true
@@ -2059,30 +2161,31 @@
   #?(:clj (.-keyPressed (ap/current-applet))
      :cljs (.-__keyPressed (ap/current-applet))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "lightFalloff()"
-    :category "Lights, Camera"
-    :subcategory "Lights"
-    :added "1.0"}
-  light-falloff
-  "Sets the falloff rates for point lights, spot lights, and ambient
-  lights. The parameters are used to determine the falloff with the
-  following equation:
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "lightFalloff()"
+       :category "Lights, Camera"
+       :subcategory "Lights"
+       :added "1.0"}
+     light-falloff
+     "Sets the falloff rates for point lights, spot lights, and ambient
+     lights. The parameters are used to determine the falloff with the
+     following equation:
 
-  d = distance from light position to vertex position
-  falloff = 1 / (CONSTANT + d * LINEAR + (d*d) * QUADRATIC)
+     d = distance from light position to vertex position
+     falloff = 1 / (CONSTANT + d * LINEAR + (d*d) * QUADRATIC)
 
-  Like fill, it affects only the elements which are created after it
-  in the code. The default value is (light-falloff 1.0 0.0 0.0).
-  Thinking about an ambient light with a falloff can be tricky. It is
-  used, for example, if you wanted a region of your scene to be lit
-  ambiently one color and another region to be lit ambiently by
-  another color, you would use an ambient light with location and
-  falloff. You can think of it as a point light that doesn't care
-  which direction a surface is facing."
-  [constant linear quadratic]
-  (.lightFalloff (current-graphics) (float constant) (float linear) (float quadratic)))
+     Like fill, it affects only the elements which are created after it
+     in the code. The default value is (light-falloff 1.0 0.0 0.0).
+     Thinking about an ambient light with a falloff can be tricky. It is
+     used, for example, if you wanted a region of your scene to be lit
+     ambiently one color and another region to be lit ambiently by
+     another color, you would use an ambient light with location and
+     falloff. You can think of it as a point light that doesn't care
+     which direction a surface is facing."
+     [constant linear quadratic]
+     (.lightFalloff (current-graphics) (float constant) (float linear) (float quadratic))))
 
 (defn
   ^{:requires-bindings true
@@ -2096,7 +2199,8 @@
   the two values where 0.0 equal to the first point, 0.1 is very near
   the first point, 0.5 is half-way in between, etc."
   [c1 c2 amt]
-  (.lerpColor (current-graphics) (unchecked-int c1) (unchecked-int c2) (float amt)))
+  #?(:clj (.lerpColor (current-graphics) (unchecked-int c1) (unchecked-int c2) (float amt))
+     :cljs (.lerpColor (current-graphics) c1 c2 (float amt))))
 
 (defn
   ^{:requires-bindings false
@@ -2115,44 +2219,58 @@
   #?(:clj (PApplet/lerp (float start) (float stop) (float amt))
      :cljs (.lerp (ap/current-applet) start stop amt)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "lights()"
-    :category "Lights, Camera"
-    :subcategory "Lights"
-    :added "1.0"}
-  lights
-  "Sets the default ambient light, directional light, falloff, and
-  specular values. The defaults are:
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "lightness()"
+       :category nil
+       :subcategory nil
+       :added "2.8.0"}
+     lightness
+     "Extracts the HSL lightness value from a color or pixel array."
+     [c]
+     (.lightness (current-graphics) c)))
 
-  (ambient-light 128 128 128)
-  (directional-light 128 128 128 0 0 -1)
-  (light-falloff 1 0 0)
-  (light-specular 0 0 0).
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "lights()"
+       :category "Lights, Camera"
+       :subcategory "Lights"
+       :added "1.0"}
+     lights
+     "Sets the default ambient light, directional light, falloff, and
+     specular values. The defaults are:
 
-  Lights need to be included in the draw to remain persistent in a
-  looping program. Placing them in the setup of a looping program
-  will cause them to only have an effect the first time through the
-  loop."
-  []
-  (.lights (current-graphics)))
+     (ambient-light 128 128 128)
+     (directional-light 128 128 128 0 0 -1)
+     (light-falloff 1 0 0)
+     (light-specular 0 0 0).
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "lightSpecular()"
-    :category "Lights, Camera"
-    :subcategory "Lights"
-    :added "1.0"}
-  light-specular
-  "Sets the specular color for lights. Like fill, it affects only the
-  elements which are created after it in the code. Specular refers to
-  light which bounces off a surface in a perferred direction (rather
-  than bouncing in all directions like a diffuse light) and is used
-  for creating highlights. The specular quality of a light interacts
-  with the specular material qualities set through the specular and
-  shininess functions."
-  [r g b]
-  (.lightSpecular (current-graphics) (float r) (float g) (float b)))
+     Lights need to be included in the draw to remain persistent in a
+     looping program. Placing them in the setup of a looping program
+     will cause them to only have an effect the first time through the
+     loop."
+     []
+     (.lights (current-graphics))))
+
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "lightSpecular()"
+       :category "Lights, Camera"
+       :subcategory "Lights"
+       :added "1.0"}
+     light-specular
+     "Sets the specular color for lights. Like fill, it affects only the
+     elements which are created after it in the code. Specular refers to
+     light which bounces off a surface in a perferred direction (rather
+     than bouncing in all directions like a diffuse light) and is used
+     for creating highlights. The specular quality of a light interacts
+     with the specular material qualities set through the specular and
+     shininess functions."
+     [r g b]
+     (.lightSpecular (current-graphics) (float r) (float g) (float b))))
 
 (defn
   ^{:requires-bindings true
@@ -2167,7 +2285,7 @@
   the fill method will not affect the color of a line. 2D lines are
   drawn with a width of one pixel by default, but this can be changed
   with the stroke-weight function. The version with six parameters
-  allows the line to be placed anywhere within XYZ space. "
+  allows the line to be placed anywhere within XYZ space."
   ([p1 p2] (apply line (concat p1 p2)))
   ([x1 y1 x2 y2] (.line (current-graphics) (float x1) (float y1) (float x2) (float y2)))
   ([x1 y1 z1 x2 y2 z2]
@@ -2248,16 +2366,17 @@
   ([fragment-filename vertex-filename]
    (.loadShader (current-graphics) fragment-filename vertex-filename)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "loadShape()"
-    :category "Shape"
-    :subcategory "Loading & Displaying"
-    :added "1.0"}
-  load-shape
-  "Load a geometry from a file as a PShape."
-  [filename]
-  (.loadShape (ap/current-applet) filename))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "loadShape()"
+       :category "Shape"
+       :subcategory "Loading & Displaying"
+       :added "1.0"}
+     load-shape
+     "Load a geometry from a file as a PShape."
+     [filename]
+     (.loadShape (ap/current-applet) filename)))
 
 (defn
   ^{:requires-bindings false
@@ -2288,8 +2407,7 @@
    #?(:clj (PApplet/mag (float a) (float b))
       :cljs (.mag (ap/current-applet) a b)))
   ([a b c]
-   #?(:clj (PApplet/mag (float a) (float b) (float c))
-      :cljs (.mag (ap/current-applet) a b c))))
+   #?(:clj (PApplet/mag (float a) (float b) (float c)))))
 
 (defn
   ^{:requires-bindings false
@@ -2354,50 +2472,53 @@
   #?(:clj (PApplet/minute)
      :cljs (.minute (ap/current-applet))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "modelX()"
-    :category "Lights, Camera"
-    :subcategory "Coordinates"
-    :added "1.0"}
-  model-x
-  "Returns the three-dimensional x, y, z position in model space. This
-  returns the x value for a given coordinate based on the current set
-  of transformations (scale, rotate, translate, etc.) The x value can
-  be used to place an object in space relative to the location of the
-  original point once the transformations are no longer in use."
-  [x y z]
-  (.modelX (current-graphics) (float x) (float y) (float z)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "modelX()"
+       :category "Lights, Camera"
+       :subcategory "Coordinates"
+       :added "1.0"}
+     model-x
+     "Returns the three-dimensional x, y, z position in model space. This
+     returns the x value for a given coordinate based on the current set
+     of transformations (scale, rotate, translate, etc.) The x value can
+     be used to place an object in space relative to the location of the
+     original point once the transformations are no longer in use."
+     [x y z]
+     (.modelX (current-graphics) (float x) (float y) (float z))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "modelY()"
-    :category "Lights, Camera"
-    :subcategory "Coordinates"
-    :added "1.0"}
-  model-y
-  "Returns the three-dimensional x, y, z position in model space. This
-  returns the y value for a given coordinate based on the current set
-  of transformations (scale, rotate, translate, etc.) The y value can
-  be used to place an object in space relative to the location of the
-  original point once the transformations are no longer in use."
-  [x y z]
-  (.modelY (current-graphics) (float x) (float y) (float z)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "modelY()"
+       :category "Lights, Camera"
+       :subcategory "Coordinates"
+       :added "1.0"}
+     model-y
+     "Returns the three-dimensional x, y, z position in model space. This
+     returns the y value for a given coordinate based on the current set
+     of transformations (scale, rotate, translate, etc.) The y value can
+     be used to place an object in space relative to the location of the
+     original point once the transformations are no longer in use."
+     [x y z]
+     (.modelY (current-graphics) (float x) (float y) (float z))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "modelZ()"
-    :category "Lights, Camera"
-    :subcategory "Coordinates"
-    :added "1.0"}
-  model-z
-  "Returns the three-dimensional x, y, z position in model space. This
-  returns the z value for a given coordinate based on the current set
-  of transformations (scale, rotate, translate, etc.) The z value can
-  be used to place an object in space relative to the location of the
-  original point once the transformations are no longer in use."
-  [x y z]
-  (.modelZ (current-graphics) (float x) (float y) (float z)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "modelZ()"
+       :category "Lights, Camera"
+       :subcategory "Coordinates"
+       :added "1.0"}
+     model-z
+     "Returns the three-dimensional x, y, z position in model space. This
+     returns the z value for a given coordinate based on the current set
+     of transformations (scale, rotate, translate, etc.) The z value can
+     be used to place an object in space relative to the location of the
+     original point once the transformations are no longer in use."
+     [x y z]
+     (.modelZ (current-graphics) (float x) (float y) (float z))))
 
 (defn
   ^{:requires-bindings false
@@ -2558,7 +2679,7 @@
   "Adjusts the character and level of detail produced by the Perlin
   noise function. Similar to harmonics in physics, noise is computed
   over several octaves. Lower octaves contribute more to the output
-  signal and as such define the overal intensity of the noise, whereas
+  signal and as such define the overall intensity of the noise, whereas
   higher octaves create finer grained details in the noise
   sequence. By default, noise is computed over 4 octaves with each
   octave contributing exactly half than its predecessor, starting at
@@ -2589,19 +2710,20 @@
   [val]
   (.noiseSeed (ap/current-applet) (int val)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "noLights()"
-    :category "Lights, Camera"
-    :subcategory "Lights"
-    :added "1.0"}
-  no-lights
-  "Disable all lighting. Lighting is turned off by default and enabled
-  with the lights fn. This function can be used to disable lighting so
-  that 2D geometry (which does not require lighting) can be drawn
-  after a set of lighted 3D geometry."
-  []
-  (.noLights (current-graphics)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "noLights()"
+       :category "Lights, Camera"
+       :subcategory "Lights"
+       :added "1.0"}
+     no-lights
+     "Disable all lighting. Lighting is turned off by default and enabled
+     with the lights fn. This function can be used to disable lighting so
+     that 2D geometry (which does not require lighting) can be drawn
+     after a set of lighted 3D geometry."
+     []
+     (.noLights (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -2642,21 +2764,22 @@
   #?(:clj (PApplet/norm (float val) (float start) (float stop))
      :cljs (.norm (ap/current-applet) val start stop)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "normal()"
-    :category "Lights, Camera"
-    :subcategory "Lights"
-    :added "1.0"}
-  normal
-  "Sets the current normal vector. This is for drawing three
-  dimensional shapes and surfaces and specifies a vector perpendicular
-  to the surface of the shape which determines how lighting affects
-  it. Processing attempts to automatically assign normals to shapes,
-  but since that's imperfect, this is a better option when you want
-  more control. This function is identical to glNormal3f() in OpenGL."
-  [nx ny nz]
-  (.normal (current-graphics) (float nx) (float ny) (float nz)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "normal()"
+       :category "Lights, Camera"
+       :subcategory "Lights"
+       :added "1.0"}
+     normal
+     "Sets the current normal vector. This is for drawing three
+     dimensional shapes and surfaces and specifies a vector perpendicular
+     to the surface of the shape which determines how lighting affects
+     it. Processing attempts to automatically assign normals to shapes,
+     but since that's imperfect, this is a better option when you want
+     more control. This function is identical to glNormal3f() in OpenGL."
+     [nx ny nz]
+     (.normal (current-graphics) (float nx) (float ny) (float nz))))
 
 (defn
   ^{:requires-bindings true
@@ -2693,6 +2816,18 @@
   displaying images with their original hues."
   []
   (.noTint (current-graphics)))
+
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "orbitControl()"
+       :category "Lights, Camera"
+       :subcategory "Camera"
+       :added "2.8.0"}
+     orbit-control
+     "Allows the camera to orbit around a target."
+     []
+     (.orbitControl (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -2738,21 +2873,20 @@
    (.perspective (current-graphics) (float fovy) (float aspect)
                  (float z-near) (float z-far))))
 
-#?(:clj
-   (defn
-     ^{:requires-bindings true
-       :processing-name "pixelDensity()"
-       :category "Environment"
-       :subcategory nil
-       :added "2.4.0"}
-     pixel-density
-     "It makes it possible for Processing to render using all of the pixels
+(defn
+  ^{:requires-bindings true
+    :processing-name "pixelDensity()"
+    :category "Environment"
+    :subcategory nil
+    :added "2.4.0"}
+  pixel-density
+  "It makes it possible for Processing to render using all of the pixels
   on high resolutions screens like Apple Retina displays and Windows
   High-DPI displays. Possible values 1 or 2. Must be called only from
   :settings handler. To get density of the current screen you can use
   (display-density) function."
-     [density]
-     (.pixelDensity (ap/current-applet) density)))
+  [density]
+  (.pixelDensity (ap/current-applet) density))
 
 (defn
   ^{:requires-bindings true
@@ -2775,9 +2909,19 @@
      :cljs
      ([img]
       (.loadPixels img)
-      (let [pix-array (.toArray (.-pixels img))]
-        (set! (.-stored-pix-array img) pix-array)
-        pix-array))))
+      (.-pixels img))))
+
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "plane()"
+       :category "Shape"
+       :subcategory "3D Primitives"
+       :added "1.0"}
+     plane
+     "Draw a plane with given a width and height."
+     [width height]
+     (.plane (current-graphics) (float width) (float height))))
 
 (defn
   ^{:requires-bindings true
@@ -2844,11 +2988,12 @@
   stack. Understanding pushing and popping requires understanding the
   concept of a matrix stack. The push-matrix fn saves the current
   coordinate system to the stack and pop-matrix restores the prior
-  coordinate system. push-matrix and pop-matrix are used in conjuction
+  coordinate system. push-matrix and pop-matrix are used in conjunction
   with the other transformation methods and may be embedded to control
   the scope of the transformations."
   []
-  (.popMatrix (current-graphics)))
+  #?(:clj (.popMatrix (current-graphics))
+     :cljs (.pop (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -2864,7 +3009,8 @@
   The push-style and pop-style functions can be nested to provide more
   control"
   []
-  (.popStyle (current-graphics)))
+  #?(:clj (.popStyle (current-graphics))
+     :cljs (.pop (current-graphics))))
 
 (defn
   ^{:requires-bindings false
@@ -2882,57 +3028,80 @@
   #?(:clj (PApplet/pow (float num) (float exponent))
      :cljs (.pow (ap/current-applet) num exponent)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "printCamera()"
-    :category "Lights, Camera"
-    :subcategory "Camera"
-    :added "1.0"}
-  print-camera
-  "Prints the current camera matrix to std out. Useful for debugging."
-  []
-  (.printCamera (current-graphics)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "printCamera()"
+       :category "Lights, Camera"
+       :subcategory "Camera"
+       :added "1.0"}
+     print-camera
+     "Prints the current camera matrix to std out. Useful for debugging."
+     []
+     (.printCamera (current-graphics))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "printMatrix()"
-    :category "Transform"
-    :subcategory nil
-    :added "1.0"}
-  print-matrix
-  "Prints the current matrix to std out. Useful for debugging."
-  []
-  (.printMatrix (current-graphics)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "printMatrix()"
+       :category "Transform"
+       :subcategory nil
+       :added "1.0"}
+     print-matrix
+     "Prints the current matrix to std out. Useful for debugging."
+     []
+     (.printMatrix (current-graphics))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "printProjection()"
-    :category "Lights, Camera"
-    :subcategory "Camera"
-    :added "1.0"}
-  print-projection
-  "Prints the current projection matrix to std out. Useful for
-  debugging"
-  []
-  (.printProjection (current-graphics)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "printProjection()"
+       :category "Lights, Camera"
+       :subcategory "Camera"
+       :added "1.0"}
+     print-projection
+     "Prints the current projection matrix to std out. Useful for
+     debugging"
+     []
+     (.printProjection (current-graphics))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "pushMatrix()"
-    :category "Transform"
-    :subcategory nil
-    :added "1.0"}
-  push-matrix
-  "Pushes the current transformation matrix onto the matrix
-  stack. Understanding push-matrix and pop-matrix requires
-  understanding the concept of a matrix stack. The push-matrix
-  function saves the current coordinate system to the stack and
-  pop-matrix restores the prior coordinate system. push-matrix and
-  pop-matrix are used in conjuction with the other transformation
-  methods and may be embedded to control the scope of the
-  transformations."
-  []
-  (.pushMatrix (current-graphics)))
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "pushMatrix()"
+       :category "Transform"
+       :subcategory nil
+       :added "1.0"}
+     push-matrix
+     "Pushes the current transformation matrix onto the matrix
+     stack. Understanding push-matrix and pop-matrix requires
+     understanding the concept of a matrix stack. The push-matrix
+     function saves the current coordinate system to the stack and
+     pop-matrix restores the prior coordinate system. push-matrix and
+     pop-matrix are used in conjunction with the other transformation
+     methods and may be embedded to control the scope of the
+     transformations."
+     []
+     (.push (current-graphics))))
+
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "pushMatrix()"
+       :category "Transform"
+       :subcategory nil
+       :added "1.0"}
+     push-matrix
+     "Pushes the current transformation matrix onto the matrix
+     stack. Understanding push-matrix and pop-matrix requires
+     understanding the concept of a matrix stack. The push-matrix
+     function saves the current coordinate system to the stack and
+     pop-matrix restores the prior coordinate system. push-matrix and
+     pop-matrix are used in conjunction with the other transformation
+     methods and may be embedded to control the scope of the
+     transformations."
+     []
+     (.pushMatrix (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -2955,7 +3124,8 @@
   shape-mode, color-mode, text-align, text-font, text-mode, text-size,
   text-leading, emissive, specular, shininess, and ambient"
   []
-  (.pushStyle (current-graphics)))
+  #?(:clj (.pushStyle (current-graphics))
+     :cljs (.push (current-graphics))))
 
 (defn
   ^{:requires-bindings true
@@ -3167,7 +3337,8 @@
 
   [mode]
   (let [mode (u/resolve-constant-key mode rect-modes)]
-    (.rectMode (current-graphics) (int mode))))
+    #?(:clj (.rectMode (current-graphics) (int mode))
+       :cljs (.rectMode (current-graphics) mode))))
 
 (defn
   ^{:requires-bindings true
@@ -3178,7 +3349,8 @@
   red
   "Extracts the red value from a color, scaled to match current color-mode."
   [c]
-  (.red (current-graphics) (unchecked-int c)))
+  #?(:clj (.red (current-graphics) (unchecked-int c))
+     :cljs (.red (current-graphics) c)))
 
 (defn
   ^{:requires-bindings true
@@ -3202,22 +3374,23 @@
   []
   (.redraw (ap/current-applet)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "requestImage()"
-    :category "Image"
-    :subcategory "Loading & Displaying"
-    :added "1.0"}
-  request-image
-  "This function load images on a separate thread so that your sketch
-  does not freeze while images load during setup. While the image is
-  loading, its width and height will be 0. If an error occurs while
-  loading the image, its width and height will be set to -1. You'll
-  know when the image has loaded properly because its width and height
-  will be greater than 0. Asynchronous image loading (particularly
-  when downloading from a server) can dramatically improve
-  performance."
-  [filename] (.requestImage (ap/current-applet) (str filename)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "requestImage()"
+       :category "Image"
+       :subcategory "Loading & Displaying"
+       :added "1.0"}
+     request-image
+     "This function load images on a separate thread so that your sketch
+     does not freeze while images load during setup. While the image is
+     loading, its width and height will be 0. If an error occurs while
+     loading the image, its width and height will be set to -1. You'll
+     know when the image has loaded properly because its width and height
+     will be greater than 0. Asynchronous image loading (particularly
+     when downloading from a server) can dramatically improve
+     performance."
+     [filename] (.requestImage (ap/current-applet) (str filename))))
 
 (defn
   ^{:requires-bindings true
@@ -3306,7 +3479,7 @@
   direction. Transformations apply to everything that happens after
   and subsequent calls to the function accumulates the effect. For
   example, calling (rotate HALF-PI) and then (rotate HALF-PI) is the
-  same as (rotate PI). All tranformations are reset when draw begins
+  same as (rotate PI). All transformations are reset when draw begins
   again.
 
   Technically, rotate multiplies the current transformation matrix by
@@ -3406,7 +3579,8 @@
   saturation
   "Extracts the saturation value from a color."
   [c]
-  (.saturation (current-graphics) (unchecked-int c)))
+  #?(:clj (.saturation (current-graphics) (unchecked-int c))
+     :cljs (.saturation (current-graphics) c)))
 
 (defn
   ^{:requires-bindings true
@@ -3434,8 +3608,28 @@
     :added "1.0"}
   save-frame
   "Saves an image identical to the current display window as a
-  file. May be called multple times - each file saved will have a
-  unique name. Name and image formate may be modified by passing a
+  file. May be called multiple times - each file saved will have a
+  unique name. Name and image format may be modified by passing a
+  string parameter of the form \"foo-####.ext\" where foo- can be any
+  arbitrary string, #### will be replaced with the current frame id
+  and .ext is one of .tiff, .targa, .png, .jpeg or .jpg
+
+  Examples:
+  (save-frame)
+  (save-frame \"pretty-pic-####.jpg\")"
+  ([] (.saveFrame (ap/current-applet)))
+  ([name] (.saveFrame (ap/current-applet) (str name))))
+
+(defn
+  ^{:requires-bindings true
+    :processing-name "saveFrames()"
+    :category "Image"
+    :subcategory ""
+    :added "1.0"}
+  save-frame
+  "Saves an image identical to the current display window as a
+  file. May be called multiple times - each file saved will have a
+  unique name. Name and image format may be modified by passing a
   string parameter of the form \"foo-####.ext\" where foo- can be any
   arbitrary string, #### will be replaced with the current frame id
   and .ext is one of .tiff, .targa, .png, .jpeg or .jpg
@@ -3462,7 +3656,7 @@
   multiply the effect. For example, calling (scale 2) and then
   (scale 1.5) is the same as (scale 3). If scale is called within
   draw, the transformation is reset when the loop begins again. Using
-  this fuction with the z parameter requires specfying :p3d or :opengl
+  this function with the z parameter requires specifying :p3d or :opengl
   as the renderer. This function can be further controlled by
   push-matrix and pop-matrix."
   ([s] (.scale (current-graphics) (float s)))
@@ -3499,47 +3693,50 @@
      []
      (.height (current-screen))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "screenX()"
-    :category "Lights, Camera"
-    :subcategory "Coordinates"
-    :added "1.0"}
-  screen-x
-  "Takes a three-dimensional x, y, z position and returns the x value
-  for where it will appear on a (two-dimensional) screen, once
-  affected by translate, scale or any other transformations"
-  ([x y]  (.screenX (current-graphics) (float x) (float y)))
-  ([x y z]  (.screenX (current-graphics) (float x) (float y) (float z))))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "screenX()"
+       :category "Lights, Camera"
+       :subcategory "Coordinates"
+       :added "1.0"}
+     screen-x
+     "Takes a three-dimensional x, y, z position and returns the x value
+     for where it will appear on a (two-dimensional) screen, once
+     affected by translate, scale or any other transformations"
+     ([x y]  (.screenX (current-graphics) (float x) (float y)))
+     ([x y z]  (.screenX (current-graphics) (float x) (float y) (float z)))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "screenY()"
-    :category "Lights, Camera"
-    :subcategory "Coordinates"
-    :added "1.0"}
-  screen-y
-  "Takes a three-dimensional x, y, z position and returns the y value
-  for where it will appear on a (two-dimensional) screen, once
-  affected by translate, scale or any other transformations"
-  ([x y]  (.screenY (current-graphics) (float x) (float y)))
-  ([x y z]  (.screenY (current-graphics) (float x) (float y) (float z))))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "screenY()"
+       :category "Lights, Camera"
+       :subcategory "Coordinates"
+       :added "1.0"}
+     screen-y
+     "Takes a three-dimensional x, y, z position and returns the y value
+     for where it will appear on a (two-dimensional) screen, once
+     affected by translate, scale or any other transformations"
+     ([x y]  (.screenY (current-graphics) (float x) (float y)))
+     ([x y z]  (.screenY (current-graphics) (float x) (float y) (float z)))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "screenZ()"
-    :category "Lights, Camera"
-    :subcategory "Coordinates"
-    :added "1.0"}
-  screen-z
-  "Given an x, y, z coordinate, returns its z value.
-   This value can be used to determine if an x, y, z coordinate is in
-   front or in back of another (x, y, z) coordinate. The units are
-   based on how the zbuffer is set up, and don't relate to anything
-   'real'. They're only useful for in comparison to another value
-   obtained from screen-z, or directly out of the zbuffer"
-  [x y z]
-  (.screenZ (current-graphics) (float x) (float y) (float z)))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "screenZ()"
+       :category "Lights, Camera"
+       :subcategory "Coordinates"
+       :added "1.0"}
+     screen-z
+     "Given an x, y, z coordinate, returns its z value.
+      This value can be used to determine if an x, y, z coordinate is in
+      front or in back of another (x, y, z) coordinate. The units are
+      based on how the zbuffer is set up, and don't relate to anything
+      'real'. They're only useful for in comparison to another value
+      obtained from screen-z, or directly out of the zbuffer"
+     [x y z]
+     (.screenZ (current-graphics) (float x) (float y) (float z))))
 
 (defn
   ^{:requires-bindings false
@@ -3576,8 +3773,8 @@
   problem. Grouping many calls to point or set-pixel together can also
   help. (Bug 1094)"
   ([x y c] (set-pixel (current-graphics) x y c))
-  ([^PImage img x y c]
-   (.set img (int x) (int y) (int c))))
+  ([img x y c]
+   (.set img (int x) (int y) c)))
 
 (defn
   ^{:requires-bindings true
@@ -3600,38 +3797,40 @@
        :subcategory "Shaders"
        :added "2.0"}
      shader
-     "Applies the shader specified by the parameters. It's compatible with the :p2d
-  and :p3drenderers, but not with the default :java2d renderer. Optional 'kind'
-  parameter - type of shader, either :points, :lines, or :triangles"
+     "Applies the shader specified by the parameters. It's compatible
+     with the :p2d and :p3d renderers, but not with the default :java2d
+     renderer. Optional 'kind' parameter - type of shader, either
+     :points, :lines, or :triangles"
      ([shader] (.shader (current-graphics) shader))
      ([shader kind]
       (let [mode (u/resolve-constant-key kind shader-modes)]
         (.shader (current-graphics) shader mode)))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "shape()"
-    :category "Shape"
-    :subcategory "Loading & Displaying"
-    :added "1.0"}
-  shape
-  "Displays shapes to the screen. The shapes must have been loaded
-  with load-shape. Processing currently works with SVG shapes
-  only. The sh parameter specifies the shape to display and the x and
-  y parameters define the location of the shape from its upper-left
-  corner. The shape is displayed at its original size unless the width
-  and height parameters specify a different size. The shape-mode
-  fn changes the way the parameters work. A call to
-  (shape-mode :corners), for example, will change the width and height
-  parameters to define the x and y values of the opposite corner of
-  the shape.
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "shape()"
+       :category "Shape"
+       :subcategory "Loading & Displaying"
+       :added "1.0"}
+     shape
+     "Displays shapes to the screen. The shapes must have been loaded
+     with load-shape. Processing currently works with SVG shapes
+     only. The sh parameter specifies the shape to display and the x and
+     y parameters define the location of the shape from its upper-left
+     corner. The shape is displayed at its original size unless the width
+     and height parameters specify a different size. The shape-mode
+     fn changes the way the parameters work. A call to
+     (shape-mode :corners), for example, will change the width and height
+     parameters to define the x and y values of the opposite corner of
+     the shape.
 
-  Note complex shapes may draw awkwardly with the renderers :p2d, :p3d, and
-  :opengl. Those renderers do not yet support shapes that have holes
-  or complicated breaks."
-  ([^PShape sh] (.shape (current-graphics) sh))
-  ([^PShape sh x y] (.shape (current-graphics) sh (float x) (float y)))
-  ([^PShape sh x y width height] (.shape (current-graphics) sh (float x) (float y) (float width) (float height))))
+     Note complex shapes may draw awkwardly with the renderers :p2d, :p3d, and
+     :opengl. Those renderers do not yet support shapes that have holes
+     or complicated breaks."
+     ([^PShape sh] (.shape (current-graphics) sh))
+     ([^PShape sh x y] (.shape (current-graphics) sh (float x) (float y)))
+     ([^PShape sh x y width height] (.shape (current-graphics) sh (float x) (float y) (float width) (float height)))))
 
 (defn
   ^{:requires-bindings true
@@ -3683,29 +3882,30 @@
   [angle]
   (.shearY (current-graphics) (float angle)))
 
-(defn ^{:requires-bindings true
-        :processing-name "shapeMode()"
-        :category "Shape"
-        :subcategory "Loading & Displaying"
-        :added "1.0"}
-  shape-mode
-  "Modifies the location from which shapes draw. Available modes are
-  :corner, :corners and :center. Default is :corner.
+#?(:clj
+   (defn ^{:requires-bindings true
+           :processing-name "shapeMode()"
+           :category "Shape"
+           :subcategory "Loading & Displaying"
+           :added "1.0"}
+     shape-mode
+     "Modifies the location from which shapes draw. Available modes are
+     :corner, :corners and :center. Default is :corner.
 
-  :corner  - specifies the location to be the upper left corner of the
-             shape and uses the third and fourth parameters of shape
-             to specify the width and height.
+     :corner  - specifies the location to be the upper left corner of the
+                shape and uses the third and fourth parameters of shape
+                to specify the width and height.
 
-  :corners - uses the first and second parameters of shape to set
-             the location of one corner and uses the third and fourth
-             parameters to set the opposite corner.
+     :corners - uses the first and second parameters of shape to set
+                the location of one corner and uses the third and fourth
+                parameters to set the opposite corner.
 
-  :center  - draws the shape from its center point and uses the third
-             and forth parameters of shape to specify the width and
-             height. "
-  [mode]
-  (let [mode (u/resolve-constant-key mode p-shape-modes)]
-    (.shapeMode (current-graphics) (int mode))))
+     :center  - draws the shape from its center point and uses the third
+                and forth parameters of shape to specify the width and
+                height. "
+     [mode]
+     (let [mode (u/resolve-constant-key mode p-shape-modes)]
+       (.shapeMode (current-graphics) (int mode)))))
 
 (defn
   ^{:requires-bindings true
@@ -3772,8 +3972,8 @@
     :added "1.0"}
   specular
   "Sets the specular color of the materials used for shapes drawn to
-  the screen, which sets the color of hightlights. Specular refers to
-  light which bounces off a surface in a perferred direction (rather
+  the screen, which sets the color of highlights. Specular refers to
+  light which bounces off a surface in a preferred direction (rather
   than bouncing in all directions like a diffuse light). Used in
   combination with emissive, ambient, and shininess in setting
   the material properties of shapes."
@@ -3790,47 +3990,49 @@
   "Generates a hollow ball made from tessellated triangles."
   [radius] (.sphere (current-graphics) (float radius)))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "sphereDetail()"
-    :category "Shape"
-    :subcategory "3D Primitives"
-    :added "1.0"}
-  sphere-detail
-  "Controls the detail used to render a sphere by adjusting the number
-  of vertices of the sphere mesh. The default resolution is 30, which
-  creates a fairly detailed sphere definition with vertices every
-  360/30 = 12 degrees. If you're going to render a great number of
-  spheres per frame, it is advised to reduce the level of detail using
-  this function. The setting stays active until sphere-detail is
-  called again with a new parameter and so should not be called prior
-  to every sphere statement, unless you wish to render spheres with
-  different settings, e.g. using less detail for smaller spheres or
-  ones further away from the camera. To controla the detail of the
-  horizontal and vertical resolution independently, use the version of
-  the functions with two parameters."
-  ([res] (.sphereDetail (current-graphics) (int res)))
-  ([ures vres] (.sphereDetail (current-graphics) (int ures) (int vres))))
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "sphereDetail()"
+       :category "Shape"
+       :subcategory "3D Primitives"
+       :added "1.0"}
+     sphere-detail
+     "Controls the detail used to render a sphere by adjusting the number
+     of vertices of the sphere mesh. The default resolution is 30, which
+     creates a fairly detailed sphere definition with vertices every
+     360/30 = 12 degrees. If you're going to render a great number of
+     spheres per frame, it is advised to reduce the level of detail using
+     this function. The setting stays active until sphere-detail is
+     called again with a new parameter and so should not be called prior
+     to every sphere statement, unless you wish to render spheres with
+     different settings, e.g. using less detail for smaller spheres or
+     ones further away from the camera. To control the detail of the
+     horizontal and vertical resolution independently, use the version of
+     the functions with two parameters."
+     ([res] (.sphereDetail (current-graphics) (int res)))
+     ([ures vres] (.sphereDetail (current-graphics) (int ures) (int vres)))))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "spotLight()"
-    :category "Lights, Camera"
-    :subcategory "Lights"
-    :added "1.0"}
-  spot-light
-  "Adds a spot light. Lights need to be included in the draw to
-  remain persistent in a looping program. Placing them in the setup
-  of a looping program will cause them to only have an effect the
-  first time through the loop. The affect of the r, g, and b
-  parameters is determined by the current color mode. The x, y, and z
-  parameters specify the position of the light and nx, ny, nz specify
-  the direction or light. The angle parameter affects angle of the
-  spotlight cone."
-  ([r g b x y z nx ny nz angle concentration]
-   (.spotLight (current-graphics) r g b x y z nx ny nz angle concentration))
-  ([[r g b] [x y z] [nx ny nz] angle concentration]
-   (.spotLight (current-graphics) r g b x y z nx ny nz angle concentration)))
+#(:clj
+  (defn
+    ^{:requires-bindings true
+      :processing-name "spotLight()"
+      :category "Lights, Camera"
+      :subcategory "Lights"
+      :added "1.0"}
+    spot-light
+    "Adds a spot light. Lights need to be included in the draw to
+    remain persistent in a looping program. Placing them in the setup
+    of a looping program will cause them to only have an effect the
+    first time through the loop. The affect of the r, g, and b
+    parameters is determined by the current color mode. The x, y, and z
+    parameters specify the position of the light and nx, ny, nz specify
+    the direction or light. The angle parameter affects angle of the
+    spotlight cone."
+    ([r g b x y z nx ny nz angle concentration]
+     (.spotLight (current-graphics) r g b x y z nx ny nz angle concentration))
+    ([[r g b] [x y z] [nx ny nz] angle concentration]
+     (.spotLight (current-graphics) r g b x y z nx ny nz angle concentration))))
 
 (defn
   ^{:requires-bindings false
@@ -4035,9 +4237,10 @@
   ([^String s x y]
    (when (current-fill)
      (.text (current-graphics) s (float x) (float y))))
-  ([^String s x y z]
-   (when (current-fill)
-     (.text (current-graphics) s (float x) (float y) (float z))))
+  #?(:clj
+     ([^String s x y z]
+      (when (current-fill)
+        (.text (current-graphics) s (float x) (float y) (float z)))))
   ([^String s x1 y1 x2 y2]
    (when (current-fill)
      (.text (current-graphics) s (float x1) (float y1) (float x2) (float y2)))))
@@ -4073,11 +4276,11 @@
   change the size of the font."
   ([align]
    (let [align (u/resolve-constant-key align horizontal-alignment-modes)]
-     (.textAlign (current-graphics) (int align))))
+     (.textAlign (current-graphics) align)))
   ([align-x align-y]
    (let [align-x (u/resolve-constant-key align-x horizontal-alignment-modes)
          align-y (u/resolve-constant-key align-y vertical-alignment-modes)]
-     (.textAlign (current-graphics) (int align-x) (int align-y)))))
+     (.textAlign (current-graphics) align-x align-y))))
 
 (defn
   ^{:requires-bindings true
@@ -4130,8 +4333,8 @@
   sketches and PDF output in cases where the vector data is available:
   when the font is still installed, or the font is created via the
   create-font fn"
-  ([^PFont font] (.textFont (current-graphics) font))
-  ([^PFont font size] (.textFont (current-graphics) font (int size))))
+  ([font] (.textFont (current-graphics) font))
+  ([font size] (.textFont (current-graphics) font (int size))))
 
 (defn
   ^{:requires-bindings true
@@ -4187,6 +4390,22 @@
   [size]
   (.textSize (current-graphics) (float size)))
 
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "textStyle()"
+       :category "Typography"
+       :subcategory "Attributes"
+       :added "2.8.0"}
+     text-style
+     "Sets/gets the style of the text for system fonts to :normal, :italic,
+     or :bold. Note: this may be is overridden by CSS styling. For
+     non-system fonts (opentype, truetype, etc.) please load styled fonts
+     instead."
+     [style]
+     (let [s (u/resolve-constant-key style text-styles)]
+       (.textStyle (current-graphics) s))))
+
 (defn
   ^{:requires-bindings true
     :processing-name "texture()"
@@ -4205,25 +4424,26 @@
      :cljs [img])
   (.texture (current-graphics) img))
 
-(defn
-  ^{:requires-bindings true
-    :processing-name "textureMode()"
-    :category "Shape"
-    :subcategory "Vertex"
-    :added "1.0"}
-  texture-mode
-  "Sets the coordinate space for texture mapping. There are two
-  options, :image and :normal.
+#?(:clj
+   (defn
+     ^{:requires-bindings true
+       :processing-name "textureMode()"
+       :category "Shape"
+       :subcategory "Vertex"
+       :added "1.0"}
+     texture-mode
+     "Sets the coordinate space for texture mapping. There are two
+     options, :image and :normal.
 
-  :image refers to the actual coordinates of the image and :normal
-  refers to a normalized space of values ranging from 0 to 1. The
-  default mode is :image. In :image, if an image is 100 x 200 pixels,
-  mapping the image onto the entire size of a quad would require the
-  points (0,0) (0,100) (100,200) (0,200). The same mapping in
-  NORMAL_SPACE is (0,0) (0,1) (1,1) (0,1)."
-  [mode]
-  (let [mode (u/resolve-constant-key mode texture-modes)]
-    (.textureMode (current-graphics) (int mode))))
+     :image refers to the actual coordinates of the image and :normal
+     refers to a normalized space of values ranging from 0 to 1. The
+     default mode is :image. In :image, if an image is 100 x 200 pixels,
+     mapping the image onto the entire size of a quad would require the
+     points (0,0) (0,100) (100,200) (0,200). The same mapping in
+     NORMAL_SPACE is (0,0) (0,1) (1,1) (0,1)."
+     [mode]
+     (let [mode (u/resolve-constant-key mode texture-modes)]
+       (.textureMode (current-graphics) (int mode)))))
 
 #?(:clj
    (defn
@@ -4276,6 +4496,25 @@
   ([r g b] (.tint (current-graphics) (float r) (float g) (float b)))
   ([r g b a] (.tint (current-graphics) (float g) (float g) (float b) (float a))))
 
+#?(:cljs
+   (defn
+     ^{:requires-bindings true
+       :processing-name "torus()"
+       :category "Shape"
+       :subcategory "3D Primitives"
+       :added "1.0"}
+     torus
+     "Draw a torus with given radius and tube radius.
+      Optional parameters:
+        detail-x: number of segments, the more segments the smoother geometry default is 24
+        detail-y: number of segments, the more segments the smoother geometry default is 16"
+     ([radius tube-radius]
+      (.torus (current-graphics) (float radius) (float tube-radius)))
+     ([radius tube-radius detail-x]
+      (.torus (current-graphics) (float radius) (float tube-radius) (int detail-x)))
+     ([radius tube-radius detail-x detail-y]
+      (.torus (current-graphics) (float radius) (float tube-radius) (int detail-x) (int detail-y)))))
+
 (defn
   ^{:requires-bindings true
     :processing-name "translate()"
@@ -4314,18 +4553,18 @@
              (float x2) (float y2)
              (float x3) (float y3)))
 
-(defn
-  ^{:require-binding false
-    :processing-name "unbinary()"
-    :category "Data"
-    :subcategory "Conversion"
-    :added "1.0"}
-  unbinary
-  "Unpack a binary string to an integer. See binary for converting
-  integers to strings."
-  [str-val]
-  #?(:clj (PApplet/unbinary (str str-val))
-     :cljs (.unbinary (ap/current-applet) (str str-val))))
+#?(:clj
+   (defn
+     ^{:require-binding false
+       :processing-name "unbinary()"
+       :category "Data"
+       :subcategory "Conversion"
+       :added "1.0"}
+     unbinary
+     "Unpack a binary string to an integer. See binary for converting
+     integers to strings."
+     [str-val]
+     (PApplet/unbinary (str str-val))))
 
 (defn
   ^{:require-binding false
@@ -4535,9 +4774,9 @@
   [graphics & body]
   `(let [gr# ~graphics]
      (binding [quil.core/*graphics* gr#]
-       (.beginDraw gr#)
-       ~@body
-       (.endDraw gr#))))
+       ;; (.beginDraw gr#)
+       ~@body)))
+       ;; (.endDraw gr#))))
 
 (defn ^{:requires-bindings false
         :category "Environment"
@@ -4600,7 +4839,7 @@
                                     inside functions provided to sketch (like
                                     draw, mouse-click, key-pressed and
                                     other). By default all exceptions thrown
-                                    inside these functions are catched. This
+                                    inside these functions are caught. This
                                     prevents sketch from breaking when bad
                                     function was provided and allows you to
                                     fix it and reload it on fly. You can
@@ -4645,7 +4884,7 @@
 
    :host           - String id of canvas element or DOM element itself.
                      Specifies host for the sketch. Must be specified in sketch,
-                     may be omitted in defsketch. If ommitted in defsketch,
+                     may be omitted in defsketch. If omitted in defsketch,
                      :host is set to the name of the sketch. If element with
                      specified id is not found on the page and page is empty -
                      new canvas element will be created. Used in ClojureScript.
@@ -4739,6 +4978,7 @@
                        :cljs (js/String key-char))]
         (or (KEY-MAP key-str)
             (keyword key-str))))))
+
 
 #?(:clj
    (defn

@@ -128,7 +128,7 @@ Modifying Quil and testing changes is pretty simple. First run `lein compile` to
 
 ### Clojure
 
-* If use emacs+cider, open `dev/sample.clj` and evaluate.
+* If you use emacs+cider, open `dev/sample.clj` and evaluate.
 * Alternatively run `lein run -m sample` which runs the sketch from `dev/sample.clj`.
 
 ### ClojureScript

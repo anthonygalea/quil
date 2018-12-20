@@ -2,13 +2,12 @@
   (:require [quil.util :as u]))
 
 (defmacro defsnippet
-  "Defines a snippet. Snippet is a smalll example of how to use specific
-  Quil function. Snippets used in Quil docs as well as they used for release
-  testing.
+  "Defines a snippet. A snippet is a small example of how to use a specific
+  Quil function. Snippets are used in Quil docs as well as release testing.
 
-  If snippet is intended for clj-only or cljs-only function - use reader conditionals
+  If a snippet is intended for a clj-only or cljs-only function - use reader conditionals
   (https://clojure.org/reference/reader#_reader_conditionals) to define snippet only in
-  clj or cljs. Also you can use reader conditionals inside snippet itself if needed.
+  clj or cljs. You can also use reader conditionals inside a snippet itself if needed.
 
   If the snippet is not trivial and has multiple parts - it should have comments. These
   comments will help Quil users to understand better what snippet does when they read

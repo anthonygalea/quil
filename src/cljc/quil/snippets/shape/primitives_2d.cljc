@@ -27,31 +27,58 @@
   (q/fill 220 200 255)
   (q/ellipse 250 250 400 200))
 
-(defsnippet line
-  "line"
-  {:renderer :p3d}
+#?(:clj
+   (defsnippet line
+     "line"
+     {:renderer :p3d}
 
-  (q/background 255)
-  (q/camera 250 250 250 0 0 0 0 0 -1)
-  (q/stroke 255 0 0)
-  (q/line [0 0] [100 100])
-  (q/stroke 0 255 0)
-  (q/line 100 0 0 100)
-  (q/stroke 0 0 255)
-  (q/line 0 0 0 170 120 100)
-  (q/line 170 120 100 50 -50 20)
-  (q/line 50 -50 20 0 0 0))
+     (q/background 255)
+     (q/camera 250 250 250 0 0 0 0 0 -1)
+     (q/stroke 255 0 0)
+     (q/line [0 0] [100 100])
+     (q/stroke 0 255 0)
+     (q/line 100 0 0 100)
+     (q/stroke 0 0 255)
+     (q/line 0 0 0 170 120 100)
+     (q/line 170 120 100 50 -50 20)
+     (q/line 50 -50 20 0 0 0)))
 
-(defsnippet point
-  "point"
-  {:renderer :p3d}
+#?(:cljs
+   (defsnippet line
+     "line"
+     {}
 
-  (q/background 255)
-  (q/stroke-weight 10)
-  (q/stroke 255 0 0)
-  (q/point 10 10)
-  (q/stroke 0 0 255)
-  (q/point 50 50 -200))
+     (q/background 255)
+     (q/stroke 255 0 0)
+     (q/line [30 20] [85 20])
+     (q/stroke 0 255 0)
+     (q/line 85 20 85 75)
+     (q/stroke 0 0 255)
+     (q/line 85 75 30 75 120 100)))
+
+#?(:clj
+   (defsnippet point
+     "point"
+     {:renderer :p3d}
+
+     (q/background 255)
+     (q/stroke-weight 10)
+     (q/stroke 255 0 0)
+     (q/point 10 10)
+     (q/stroke 0 0 255)
+     (q/point 50 50 -200)))
+
+#?(:cljs
+   (defsnippet point
+     "point"
+     {}
+
+     (q/background 255)
+     (q/stroke-weight 10)
+     (q/stroke 255 0 0)
+     (q/point 10 10)
+     (q/stroke 0 0 255)
+     (q/point 50 50 -200)))
 
 (defsnippet quad
   "quad"
